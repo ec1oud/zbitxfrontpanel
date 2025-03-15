@@ -115,7 +115,7 @@ struct field main_list[] = {
   {FIELD_SELECTION, 336, 272, 48, 48,  TFT_BLACK, "TX1ST", "ON", "ON/OFF"},
   {FIELD_SELECTION, 384, 272, 48, 48,  TFT_BLACK, "AUTO", "ON", "ON/OFF"},
   {FIELD_NUMBER, 432, 272, 48, 48,  TFT_BLACK, "REPEAT", "5", "1/10/1"},
-  {FIELD_FT8, 240, 96, 240, 176,  TFT_BLACK, "FT8_LIST", "FT8 DISPLAY", "1/10/1"},
+  {FIELD_FT8, 240, 96, 240, 176,  TFT_BLACK, "FT8_LIST", "", "1/10/1"},
 
   //CW controls
   {FIELD_NUMBER, 288, 272, 48, 48, TFT_BLACK, "WPM", "12", "3/50/1"},
@@ -521,11 +521,13 @@ struct field *field_select(const char *label){
     f_selected->redraw = true;
     
   //redraw the deselected field again to remove the focus
-  f_selected = f;
-  f->redraw = true;
+	if (f->type != FIELD_BUTTON && f->type != FIELD_KEY){
+  	f_selected = f;
+  	f->redraw = true;
+	}	
 
   //if a selection field is selected, move to the next selection
-  if(f_selected->type == FIELD_SELECTION){
+  if(f->type == FIELD_SELECTION){
     char *p, *prev, *next, b[100], *first, *last;
     // get the first and last selections
     strcpy(b, f->selection);
@@ -867,6 +869,14 @@ void field_console_draw_old(field *f){
 /* FT8 routines */
 unsigned long last_ft8_cursor_movement = 0;
 
+void ft8_select(){
+	char buff[200];
+
+	struct ft8_message *m = ft8_list + ft8_cursor;
+	sprintf(ft8_message_buffer, "FT8 %s\n", m->data);
+	Serial.println(ft8_message_buffer);
+}
+
 void field_ft8_append(const char *msg){
   //#G121145  16 -16 1797 ~ #GDG5YPR #RIZ2FOS #SJN55
   Serial.print("ft8_msg:");Serial.print(msg);
@@ -950,27 +960,26 @@ void field_ft8_draw(field *f){
 	if (last_ft8_cursor_movement + 30000 < millis())
 		ft8_cursor = -1;
 
-	Serial.printf("top: %d, cursor:%d, next %d\n", ft8_top, ft8_cursor, ft8_next);
+	//Serial.printf("top: %d, cursor:%d, next %d\n", ft8_top, ft8_cursor, ft8_next);
 	//display all the latest fields
 	if (ft8_cursor == -1){
 		//Adjust the top to show last messages
 		ft8_top = ft8_new_index(ft8_next, -count);
-		Serial.printf("Adjusting unselected ft8_top to %d\n", ft8_top);
+	//	Serial.printf("Adjusting unselected ft8_top to %d\n", ft8_top);
 	}
 	else {
 		if (ft8_cursor >= 0 && ft8_list[ft8_cursor].id < ft8_list[ft8_top].id && ft8_list[ft8_cursor].id > 0){
 			ft8_top = ft8_cursor;
-			Serial.print("BACK ");
+		//	Serial.print("BACK ");
 		}
-		else if (ft8_cursor >= 0 && ft8_list[ft8_cursor].id > ft8_list[ft8_new_index(ft8_top, count)].id){
-			ft8_top = ft8_new_index(ft8_cursor, -count);
+		else if (ft8_cursor >= 0 && ft8_list[ft8_cursor].id > ft8_list[ft8_new_index(ft8_top, count - 1)].id){
+			ft8_top = ft8_new_index(ft8_cursor, -count + 1);
 			Serial.print("FWD ");
 		}
-		else
-			Serial.print("NONE ");
-		Serial.printf("Adjusted cursor to show with ft8_top at %d\n", ft8_top);
+//		Serial.printf("Adjusted cursor to show with ft8_top at %d\n", ft8_top);
 	}
 
+	screen_fill_rect(f->x, f->y, f->w, f->h, TFT_BLACK);
   int index = ft8_top ; //ft8_next - count;
   if (index < 0)
     index += FT8_MAX;
@@ -1117,10 +1126,17 @@ void field_action(uint8_t input){
     //reset_usb_boot(1<<PICO_DEFAULT_LED_PIN,0); //invokes reset into bootloader mode
   }  
 	if (f_selected->type == FIELD_FT8){
-		if (input == ZBITX_KEY_DOWN)
-			ft8_move_cursor(+1);
-		else if (input == ZBITX_KEY_UP)
+		if (input == ZBITX_KEY_DOWN){
 			ft8_move_cursor(-1);
+		}
+		else if (input == ZBITX_KEY_UP)
+			ft8_move_cursor(+1);
+		else if (input == ZBITX_KEY_ENTER){
+			Serial.println("Ft selecting");
+			ft8_select();
+		}
+  	f_selected->redraw = true;
+		return;
 	}
   if(f_selected->type == FIELD_SELECTION){
     char *p, *last, *next, b[100], *first;

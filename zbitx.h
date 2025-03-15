@@ -102,6 +102,8 @@ struct ft8_message {
   char data[FT8_MAX_DATA];  
 };
 
+extern char ft8_message_buffer[];
+
 struct logbook_entry {
   uint32_t qso_id;
   char date_utc[11]; //ex: 20250102 yyyy/mm/dd

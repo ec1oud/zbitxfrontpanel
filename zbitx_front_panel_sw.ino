@@ -22,6 +22,10 @@ bool mouse_down = false;
 uint8_t encoder_state = 0;
 boolean encoder_switch = false;
 int vfwd=0, vswr=0, vref = 0, vbatt=0;
+int wheel_move = 0;
+
+char ft8_message_buffer[200];
+
 
 void on_enc(){
   uint8_t encoder_now = digitalRead(ENC_A) + (2 * digitalRead(ENC_B));
@@ -30,12 +34,14 @@ void on_enc(){
       || (encoder_state == 1 && encoder_now == 3) 
       || (encoder_state == 3 && encoder_now == 2)
       || (encoder_state == 2 && encoder_now == 0)) 
-      field_action(ZBITX_KEY_DOWN);
+      wheel_move++;
+      //field_action(ZBITX_KEY_DOWN);
     else if ((encoder_now == 0 && encoder_now == 2)
       || (encoder_state == 2 && encoder_now == 3)
       || (encoder_state == 3 && encoder_now == 1)
       || (encoder_state == 1 && encoder_now == 0))
-       field_action(ZBITX_KEY_UP); 
+       wheel_move--;
+      // field_action(ZBITX_KEY_UP); 
     encoder_state = encoder_now;    
   }
 }
@@ -54,22 +60,16 @@ void ui_slice(){
 		field_action(ZBITX_KEY_ENTER);
 	}
 
-/*
-  uint8_t encoder_now = digitalRead(ENC_A) + (2 * digitalRead(ENC_B));
-  if (encoder_now != encoder_state){
-    if ((encoder_state == 0 && encoder_now == 1) 
-      || (encoder_state == 1 && encoder_now == 3) 
-      || (encoder_state == 3 && encoder_now == 2)
-      || (encoder_state == 2 && encoder_now == 0)) 
-      field_action(ZBITX_KEY_DOWN);
-    else if ((encoder_now == 0 && encoder_now == 2)
-      || (encoder_state == 2 && encoder_now == 3)
-      || (encoder_state == 3 && encoder_now == 1)
-      || (encoder_state == 1 && encoder_now == 0))
-       field_action(ZBITX_KEY_UP); 
-    encoder_state = encoder_now;    
+  if (wheel_move > 3){
+    field_action(ZBITX_KEY_UP);
+    //Serial.printf("wheel up %d\n", wheel_move);
+    wheel_move = 0;
   }
-	*/
+  else if (wheel_move < -3){
+    field_action(ZBITX_KEY_DOWN);
+    //Serial.printf("wheel dn %d\n", wheel_move);
+    wheel_move = 0;
+  }
   //redraw everything
   field_draw_all(false);
   
@@ -90,28 +90,43 @@ void ui_slice(){
   mouse_down = true;
 }
 
+void wire_text(char *text){
+	int l = strlen(text);
+  //Serial.printf("wire write (%d) %s\n", l, text);
+	Wire1.write(text, l + 1); //include the last zero
+}
+
 char buff_i2c_req[100];
 void on_request(){
-  char buff[30], c;
-
+  char c;
   //just update a single field
   for (struct field *f = field_list; f->type != -1; f++)
     if (f->update_to_radio){
       f->update_to_radio = false;
       sprintf(buff_i2c_req, "%s %s", f->label, f->value);
-      Wire1.write(buff_i2c_req, 30);
+      //Wire1.write(buff_i2c_req, 30);
+			wire_text(buff_i2c_req);
       return;
     }
   if (c = read_key()){
     sprintf(buff_i2c_req, "key %c", c);
-    Wire1.write(buff_i2c_req, 30);
-    //printf("sending key: %s\n", buff_i2c_req);  
-    Serial.println(buff_i2c_req);
+    //Wire1.write(buff_i2c_req, 30);
+		wire_text(buff_i2c_req);
+    //Serial.println(buff_i2c_req);
     return;      
   }
-  //if we have nothing else to retun, then return the battery output
+
+	if (ft8_message_buffer[0] != 0){
+    strcpy(buff_i2c_req, ft8_message_buffer);
+		wire_text(buff_i2c_req);
+		//Serial.printf(">>>>>>>> sendin ft8 [%s]\n", buff_i2c_req);
+		ft8_message_buffer[0] = 0;
+		return;
+	}
+
+  //if we have nothing else to return, then return the battery output
   sprintf(buff_i2c_req, "vbatt %d\npower %d\nvswr %d", vbatt, vfwd, vswr);
-  Wire1.write(buff_i2c_req, 30);    
+	wire_text(buff_i2c_req);  
 }
 
 int dcount = 0;
@@ -178,9 +193,6 @@ void setup() {
 	attachInterrupt(ENC_B, on_enc, CHANGE);
 	//attachInterrupt(ENC_S, on_enc, CHANGE);
 
-  /*field_set("CONSOLE", "Hi! zBitx\nWaiting for zbitx to boot:\n");
-  field_set("CONSOLE", "Lorem ipsum dolor sit amet, consectetur adipiscing elit. In vulputate, nibh nec dictum faucibus, libero arcu euismod justo, a interdum mauris turpis id sem. Vestibulum iaculis rhoncus dapibus. Sed cursus tempor magna, vitae rutrum nunc tempor pharetra. Suspendisse eu placerat tellus, id cursus sapien. Nam hendrerit elementum ipsum non sollicitudin. ");
-  field_set("CONSOLE", "2025/03/1 CW 20M VU2ESE 599xxx 599xxx\n");*/
 }
 
 bool in_tx(){
