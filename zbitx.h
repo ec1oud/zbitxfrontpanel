@@ -6,11 +6,14 @@
 #define ZBITX_FONT_NORMAL 2
 #define ZBITX_FONT_LARGE 4 
 
+//in milli seconds
+#define BLINK_RATE 300 
 #define SCREEN_BACKGROUND_COLOR 0x31E7
 
 #define ZBITX_KEY_UP 2
 #define ZBITX_KEY_DOWN 3
 #define ZBITX_KEY_ENTER 13 
+extern int8_t edit_mode;
 
 //Some hardware definitions/pins
 #define ENC_S 1
@@ -51,7 +54,7 @@ void screen_draw_mono(const char *text, int count, int x_at, int y_at, uint16_t 
 #define FIELD_LOGBOOK 11
 #define FIELD_SMETER 12
 
-#define FIELD_TEXT_MAX_LENGTH 32
+#define FIELD_TEXT_MAX_LENGTH 128
 
 #ifndef FIELDS_H
 #define FIELDS_H
@@ -134,6 +137,7 @@ void field_panel(char *field_list);
 void field_draw_all(bool all);
 void field_set_panel(const char *mode);
 void field_update_to_radio(char *label);
+void field_blink(int blink_state);
 char read_key();
 
 void screen_waterfall_update(uint8_t *bins, int w, int h);

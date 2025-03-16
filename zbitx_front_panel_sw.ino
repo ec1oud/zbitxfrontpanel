@@ -15,12 +15,15 @@ The blink.ino should work (note that the pico w and pico have different gpios fo
 
 int freq = 7000000;
 unsigned long now = 0;
+unsigned long last_blink = 0;
 char receive_buff[10000];
 struct Queue q_incoming;
 
 bool mouse_down = false;
 uint8_t encoder_state = 0;
 boolean encoder_switch = false;
+unsigned long next_repeat_time = 0;
+
 int vfwd=0, vswr=0, vref = 0, vbatt=0;
 int wheel_move = 0;
 
@@ -46,49 +49,6 @@ void on_enc(){
   }
 }
 
-void ui_slice(){
-  uint16_t x, y;
-
-  // check the encoder state
-	if (digitalRead(ENC_S) == HIGH && encoder_switch == true){
-			//Serial.println("OFF");
-			encoder_switch = false;		
-	}
-	if (digitalRead(ENC_S) == LOW && encoder_switch == false){
-		//Serial.println("ON");
-		encoder_switch = true;
-		field_action(ZBITX_KEY_ENTER);
-	}
-
-  if (wheel_move > 3){
-    field_action(ZBITX_KEY_UP);
-    //Serial.printf("wheel up %d\n", wheel_move);
-    wheel_move = 0;
-  }
-  else if (wheel_move < -3){
-    field_action(ZBITX_KEY_DOWN);
-    //Serial.printf("wheel dn %d\n", wheel_move);
-    wheel_move = 0;
-  }
-  //redraw everything
-  field_draw_all(false);
-  
-  if (!screen_read(&x, &y)){
-      mouse_down = false;
-    return;
-  }
-
-  //check for user input
-  struct field *f = field_at(x, y);
-  if (!f)
-    return;
-    
-  //do selection only if the touch has started
-  if (!mouse_down)
-        field_select(f->label);
-        
-  mouse_down = true;
-}
 
 void wire_text(char *text){
 	int l = strlen(text);
@@ -159,7 +119,55 @@ void measure_voltages(){
 	vswr = (10*(vfwd + vref))/(vfwd-vref);
 }
 
-char test_text[] = "The quick brown fox jumped over the lazy sleeping dog\n";
+void ui_slice(){
+  uint16_t x, y;
+
+	if (now > last_blink + BLINK_RATE){
+		field_blink(-1);
+		last_blink = now;
+	}
+  // check the encoder state
+	if (digitalRead(ENC_S) == HIGH && encoder_switch == true){
+			encoder_switch = false;		
+	}
+	if (digitalRead(ENC_S) == LOW && encoder_switch == false){
+		encoder_switch = true;
+		field_action(ZBITX_KEY_ENTER);
+	}
+
+  if (wheel_move > 3){
+    field_action(ZBITX_KEY_UP);
+    wheel_move = 0;
+  }
+  else if (wheel_move < -3){
+    field_action(ZBITX_KEY_DOWN);
+    wheel_move = 0;
+  }
+  //redraw everything
+  field_draw_all(false);
+ 
+  if (!screen_read(&x, &y)){
+      mouse_down = false;
+    return;
+  }
+
+  //check for user input
+  struct field *f = field_at(x, y);
+  if (!f)
+    return;
+  //do selection only if the touch has started
+  if (!mouse_down){
+    field_select(f->label);
+		next_repeat_time = millis() + 400;
+	}
+	else if (next_repeat_time < millis() && f->type == FIELD_KEY){
+    field_select(f->label);
+		next_repeat_time = millis() + 400;
+	}
+        
+  mouse_down = true;
+}
+
 // the setup function runs once when you press reset or power the board
 void setup() {
   Serial.begin(115200);
@@ -195,23 +203,16 @@ void setup() {
 
 }
 
-bool in_tx(){
-   return false;
-}  
-                                                                                 
 int count = 0;
 // the loop function runs over and over again forever
 void loop() {
-  now = millis();
+	now = millis();
 
   ui_slice();
-  
-  field_draw_all(false);
-  while(q_length(&q_incoming)){
+
+  while(q_length(&q_incoming))
     command_interpret((char)q_read(&q_incoming));
-  }
 	count++;
-	char buff[10];
 
   measure_voltages();
   delay(1);

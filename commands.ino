@@ -16,6 +16,10 @@ void command_init(){
   in_field = false;
 }
 
+boolean in_tx(){
+	return false;
+}
+
 void command_interpret(char c){
  
   if (c == COMMAND_START){
