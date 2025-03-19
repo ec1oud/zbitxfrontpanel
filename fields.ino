@@ -1,6 +1,5 @@
 #include <TFT_eSPI.h>       // Hardware-specific library
 #include "zbitx.h"
-#include "testlog.h"
 static struct field *f_selected = NULL;
 
 extern int vswr, vfwd, vref, vbatt;
@@ -14,6 +13,7 @@ int8_t edit_mode = -1;
 static char last_key = 0;
 uint16_t font_width2[256];
 uint16_t font_width4[256];
+int text_streaming = 0;
 
 
 struct logbook_entry logbook[MAX_LOGBOOK];
@@ -21,19 +21,20 @@ int log_top_index = 0;
 int log_selection = 0;
 int logbook_selected_id = 0;
 
+void logbook_init();
 void field_logbook_draw(struct field *f);
 
 void field_draw(struct field *f, bool all);
 
 struct field *field_list;
-#define FIELDS_ALWAYS_ON 19
+#define FIELDS_ALWAYS_ON 20 
 //every label is assumbed to be unique
 struct field main_list[] = {
 
   //the first eight fiels are always visible
   {FIELD_SELECTION, 0, 0, 48, 48,  TFT_BLACK, "MODE", "CW", "USB/LSB/CW/CWR/AM/FT8/2TONE/DIGI"},
   {FIELD_SELECTION, 48, 0, 48, 48,  TFT_BLACK, "BAND", "20M", "80M/60M/40M/30M/20M/17M/15M/13M/10M"},  
-  {FIELD_NUMBER, 96, 0, 48, 48,  TFT_BLACK, "DRIVE", "100", "0/100/1"},   
+  {FIELD_NUMBER, 96, 0, 48, 48,  TFT_BLACK, "DRIVE", "100", "0/100/5"},   
   {FIELD_NUMBER, 144, 0, 48, 48,  TFT_BLACK, "IF", "40", "0/100/1"},
   {FIELD_NUMBER, 192, 0, 48, 48,  TFT_BLACK, "BW", "2200", "50/5000/50"},
   {FIELD_FREQ, 240, 0, 192, 48,  TFT_BLACK, "FREQ", "14074000", "500000/30000000/1"}, 
@@ -45,55 +46,69 @@ struct field main_list[] = {
   {FIELD_SELECTION, 432, 48, 48, 48,  TFT_BLACK, "STEP", "1K", "10K/1K/500H/100H/10H"},
  
    //LOGGER FIELDS
-  {FIELD_BUTTON, 0, 48, 48, 48,  TFT_DARKGREEN, "WIPE"},
-  {FIELD_TEXT, 48,48, 96, 24, TFT_BLACK, "CALL", "", "0,10"},
-  {FIELD_TEXT, 144, 48, 48, 24, TFT_BLACK, "EXCH", "", "0,10"},
-  {FIELD_TEXT, 48, 72, 48, 24, TFT_BLACK, "RECV", "", "0,10"},
-  {FIELD_TEXT, 96, 72, 48, 24, TFT_BLACK, "SENT", "", "0,10"},
-  {FIELD_TEXT, 144, 72, 48, 24, TFT_BLACK, "NR", "", "0,10"},
-  {FIELD_BUTTON, 192, 48, 48, 48,  TFT_DARKGREEN, "SAVE"},
-  {FIELD_BUTTON, 240, 48, 48, 48,  TFT_DARKGREEN, "LOG"},
+  {FIELD_BUTTON, 0, 48, 48, 48,  TFT_DARKGREEN, "OPEN"},
+  {FIELD_BUTTON, 48, 48, 48, 48,  TFT_DARKGREEN, "WIPE"},
+  {FIELD_TEXT, 96,48, 96, 24, TFT_BLACK, "CALL", "", "0,10"},
+  {FIELD_TEXT, 192, 48, 48, 24, TFT_BLACK, "EXCH", "", "0,10"},
+  {FIELD_TEXT, 96, 72, 48, 24, TFT_BLACK, "RECV", "", "0,10"},
+  {FIELD_TEXT, 144, 72, 48, 24, TFT_BLACK, "SENT", "", "0,10"},
+  {FIELD_TEXT, 192, 72, 48, 24, TFT_BLACK, "NR", "", "0,10"},
+  {FIELD_BUTTON, 240, 48, 48, 48,  TFT_DARKGREEN, "SAVE"},
 
+	//METERS is not SMETERS to prevent spiralling of request/responses
+  {FIELD_SMETER, 243, 3, 180, 15, TFT_BLACK, "METERS", "0", "0/10000/1"},
   //keyboard fields, keeping them just under the permanent fields
   //ensures that they get detected first  
-  {FIELD_KEY, 0, 128, 48, 48,  TFT_BLACK, "Q", "1"},
-  {FIELD_KEY, 48, 128, 48, 48,  TFT_BLACK, "W", "2"},
-  {FIELD_KEY, 96, 128, 48, 48,  TFT_BLACK, "E", "3"},
-  {FIELD_KEY, 144, 128, 48, 48,  TFT_BLACK, "R", "4"},
-  {FIELD_KEY, 192, 128, 48, 48,  TFT_BLACK, "T", "5"},
-  {FIELD_KEY, 240, 128, 48, 48,  TFT_BLACK, "Y", "6"},
-  {FIELD_KEY, 288, 128, 48, 48,  TFT_BLACK, "U", "7"},
-  {FIELD_KEY, 336, 128, 48, 48,  TFT_BLACK, "I", "8"},
-  {FIELD_KEY, 384, 128, 48, 48,  TFT_BLACK, "O", "9"},
-  {FIELD_KEY, 432, 128, 48, 48,  TFT_BLACK, "P", "0"},
 
-  {FIELD_KEY, 0, 176, 48, 48,  TFT_BLACK, "A", "@"},
-  {FIELD_KEY, 48, 176, 48, 48,  TFT_BLACK, "S", "AR"},
-  {FIELD_KEY, 96, 176, 48, 48,  TFT_BLACK, "D", "BK"},
-  {FIELD_KEY, 144, 176, 48, 48,  TFT_BLACK, "F", "BT"},
-  {FIELD_KEY, 192, 176, 48, 48,  TFT_BLACK, "G", "F1"},
-  {FIELD_KEY, 240, 176, 48, 48,  TFT_BLACK, "H", "F2"},
-  {FIELD_KEY, 288, 176, 48, 48,  TFT_BLACK, "J", "F3"},
-  {FIELD_KEY, 336, 176, 48, 48,  TFT_BLACK, "K", "F4"},
-  {FIELD_KEY, 384, 176, 48, 48,  TFT_BLACK, "L", "F5"},
-  {FIELD_KEY, 432, 176, 48, 48,  TFT_BLACK, "del", "del"},
+  {FIELD_KEY, 0, 120, 48, 40,  TFT_BLACK, "1", "1"},
+  {FIELD_KEY, 48, 120, 48, 40,  TFT_BLACK, "2", "2"},
+  {FIELD_KEY, 96, 120, 48, 40,  TFT_BLACK, "3", "3"},
+  {FIELD_KEY, 144, 120, 48, 40,  TFT_BLACK, "4", "4"},
+  {FIELD_KEY, 192, 120, 48, 40,  TFT_BLACK, "5", "5"},
+  {FIELD_KEY, 240, 120, 48, 40,  TFT_BLACK, "6", "6"},
+  {FIELD_KEY, 288, 120, 48, 40,  TFT_BLACK, "7", "7"},
+  {FIELD_KEY, 336, 120, 48, 40,  TFT_BLACK, "8", "8"},
+  {FIELD_KEY, 384, 120, 48, 40,  TFT_BLACK, "9", "9"},
+  {FIELD_KEY, 432, 120, 48, 40,  TFT_BLACK, "0", "0"},
+
+  {FIELD_KEY, 0, 160, 48, 40,  TFT_BLACK, "Q", "@"},
+  {FIELD_KEY, 48, 160, 48, 40,  TFT_BLACK, "W", "AR"},
+  {FIELD_KEY, 96, 160, 48, 40,  TFT_BLACK, "E", "BT"},
+  {FIELD_KEY, 144, 160, 48, 40,  TFT_BLACK, "R", "#"},
+  {FIELD_KEY, 192, 160, 48, 40,  TFT_BLACK, "T", "$"},
+  {FIELD_KEY, 240, 160, 48, 40,  TFT_BLACK, "Y", "*"},
+  {FIELD_KEY, 288, 160, 48, 40,  TFT_BLACK, "U", "("},
+  {FIELD_KEY, 336, 160, 48, 40,  TFT_BLACK, "I", ")"},
+  {FIELD_KEY, 384, 160, 48, 40,  TFT_BLACK, "O", "-"},
+  {FIELD_KEY, 432, 160, 48, 40,  TFT_BLACK, "P", "="},
+
+  {FIELD_KEY, 24, 200, 48, 40,  TFT_BLACK, "A", "F1"},
+  {FIELD_KEY, 72, 200, 48, 40,  TFT_BLACK, "S", "F2"},
+  {FIELD_KEY, 120, 200, 48, 40,  TFT_BLACK, "D", "F3"},
+  {FIELD_KEY, 168, 200, 48, 40,  TFT_BLACK, "F", "F4"},
+  {FIELD_KEY, 216, 200, 48, 40,  TFT_BLACK, "G", "F5"},
+  {FIELD_KEY, 264, 200, 48, 40,  TFT_BLACK, "H", "F6"},
+  {FIELD_KEY, 312, 200, 48, 40,  TFT_BLACK, "J", "F7"},
+  {FIELD_KEY, 360, 200, 48, 40,  TFT_BLACK, "K", "F8"},
+  {FIELD_KEY, 408, 200, 48, 40,  TFT_BLACK, "L", "F9"},
   
-  {FIELD_KEY, 0, 224, 48, 48,  TFT_BLACK, "/", "\\"},
-  {FIELD_KEY, 48, 224, 48, 48,  TFT_BLACK, "Z", "-"},
-  {FIELD_KEY, 96, 224, 48, 48,  TFT_BLACK, "X", "="},
-  {FIELD_KEY, 144, 224, 48, 48,  TFT_BLACK, "C", "#"},
-  {FIELD_KEY, 192, 224, 48, 48,  TFT_BLACK, "V", "*"},
-  {FIELD_KEY, 240, 224, 48, 48,  TFT_BLACK, "B", "("},
-  {FIELD_KEY, 288, 224, 48, 48,  TFT_BLACK, "N", ")"},
-  {FIELD_KEY, 336, 224, 48, 48,  TFT_BLACK, "M", "-"},
-  {FIELD_KEY, 384, 224, 48, 48,  TFT_BLACK, ".", ":"},
-  {FIELD_KEY, 432, 224, 48, 48,  TFT_BLACK, "?", ","},
+  {FIELD_KEY, 0, 240, 72, 40,  TFT_BLACK, "Sym", "ABC"}, 
+  {FIELD_KEY, 72, 240, 48, 40,  TFT_BLACK, "Z", "~"},
+  {FIELD_KEY, 120, 240, 48, 40,  TFT_BLACK, "X", "_"},
+  {FIELD_KEY, 168, 240, 48, 40,  TFT_BLACK, "C", "'"},
+  {FIELD_KEY, 216, 240, 48, 40,  TFT_BLACK, "V", ":"},
+  {FIELD_KEY, 264, 240, 48, 40,  TFT_BLACK, "B", "'"},
+  {FIELD_KEY, 312, 240, 48, 40,  TFT_BLACK, "N", "!"},
+  {FIELD_KEY, 360, 240, 48, 40,  TFT_BLACK, "M", ";"},
+  {FIELD_KEY, 408, 240, 72, 40,  TFT_BLACK, "del", "del"},
   
-  {FIELD_KEY, 0, 272, 96, 48,  TFT_BLACK, "123#", "ABC"}, 
-  {FIELD_KEY, 96, 272, 96, 48,  TFT_BLACK, "#YES", "START"}, 
-  {FIELD_KEY, 192, 272, 96, 48,  TFT_BLACK, "space", "space"},
-  {FIELD_KEY, 288, 272, 96, 48,  TFT_BLACK, "#NO", "STOP"}, 
-  {FIELD_KEY, 384, 272, 96, 48,  TFT_BLACK, "RET", "RET"},  
+  {FIELD_KEY, 0, 280, 72, 40,  TFT_BLACK, "Start", "Start"},
+  {FIELD_KEY, 72, 280, 72, 40,  TFT_BLACK, "Stop", "Stop"},
+  {FIELD_KEY, 168, 280, 48, 40,  TFT_BLACK, "/", "\\"},
+  {FIELD_KEY, 216, 280, 96, 40,  TFT_BLACK, "space", "space"},
+  {FIELD_KEY, 312, 280, 48, 40,  TFT_BLACK, ".", ":"},
+  {FIELD_KEY, 360, 280, 48, 40,  TFT_BLACK, "?", ","},
+  {FIELD_KEY, 432, 280, 48, 40,  TFT_BLACK, "[x]", "[x]"},  
 
   {FIELD_BUTTON, 0, 272, 48, 48,  TFT_BLACK, "ESC", ""},
   {FIELD_BUTTON, 48, 272, 48, 48,  TFT_BLACK, "F1", "CQ"},
@@ -108,11 +123,8 @@ struct field main_list[] = {
 
 	// this will get over written by the keyboard 
   {FIELD_CONSOLE, 240, 120, 240, 152,  TFT_BLACK, "CONSOLE", "Hello!"},  
-
-  {FIELD_TEXT, 48,48, 96, 24, TFT_BLACK, "CALLSIGN", "VU2ESE", "0,10"},
-
+  {FIELD_TEXT, 48,48, 96, 24, TFT_BLACK, "CALLSIGN", "", "0,10"},
   {FIELD_TEXT, 240, 96, 240, 24,  TFT_BLACK, "TEXT", "", "0/40"},  
-
   {FIELD_NUMBER, 288, 272, 48, 48,  TFT_BLACK, "TX_PITCH", "2200", "300/3000/10"},
   {FIELD_SELECTION, 336, 272, 48, 48,  TFT_BLACK, "TX1ST", "ON", "ON/OFF"},
   {FIELD_SELECTION, 384, 272, 48, 48,  TFT_BLACK, "AUTO", "ON", "ON/OFF"},
@@ -131,6 +143,7 @@ struct field main_list[] = {
 
   //logbook
   {FIELD_LOGBOOK, 0, 96, 480, 224, TFT_BLACK, "LOGB", "", "", field_logbook_draw},
+  {FIELD_LOGBOOK, 0, 440, 40, 40, TFT_BLACK, "x",  ""},
   
   //waterfall can get hidden by keyboard et al (or even removed by FT8 etc
   {FIELD_WATERFALL, 0, 96, 240, 176,  TFT_BLACK, "WF", ""}, //WARNING: Keep the height of the waterfall to be a multiple of 48 (see waterfal_update() code)
@@ -143,11 +156,27 @@ struct field main_list[] = {
   {FIELD_KEY, 20000, 20000, 0, 0,  TFT_BLACK, "VFOA", "14074000"},  
   {FIELD_KEY, 20000, 20000, 0, 0,  TFT_BLACK, "VFOB", "7050000"},      
 
+	{FIELD_STATIC, 24, 96, SCREEN_WIDTH-96,  100, TFT_BLACK, "QSODEL", "0", ""}, 	
+
   {FIELD_NUMBER, 0, 272, 48, 48, TFT_BLACK, "REF", "0", "0/5000/1"},
   {FIELD_NUMBER, 0, 272, 48, 48, TFT_BLACK, "VBATT", "0", "0/5000/1"},
   {FIELD_NUMBER, 0, 272, 48, 48, TFT_BLACK, "POWER", "0", "0/5000/1"},
+  {FIELD_NUMBER, 0, 272, 192, 15, TFT_BLACK, "SMETER", "0", "0/10000/1"},
+  {FIELD_NUMBER, 0, 272, 192, 15, TFT_BLACK, "IN_TX", "0", "0/10000/1"},
 
-  {FIELD_SMETER, 240, 0, 120, 5, TFT_BLACK, "SMETER", "0", "0/10000/1"},
+  {FIELD_NUMBER, 0, 272, 48, 48, TFT_BLACK, "HIGH", "0", "0/5000/1"},
+  {FIELD_NUMBER, 0, 272, 48, 48, TFT_BLACK, "LOW", "0", "0/5000/1"},
+
+  {FIELD_NUMBER, 432, 0, 48, 48,  TFT_BLACK, "AUDIO", "95", "0/100/1"},
+  {FIELD_SELECTION, 0, 0, 48, 48,  TFT_BLACK, "AGC", "MED", "OFF/SLOW/MED/FAST"},
+
+	/* alert box */
+
+	{FIELD_STATIC, 24, 96, SCREEN_WIDTH-96,  100, TFT_BLACK, "MESSAGE", "Hi", ""}, 	
+  {FIELD_BUTTON, 24, 224, 96, 48, TFT_GREEN, "OK", ""},   
+  {FIELD_BUTTON, 24, 224, 96, 48, TFT_RED, "DELETE", ""},   
+  {FIELD_BUTTON, 24, 224, 96, 48, TFT_BLACK, "CLOSE", ""},   
+  {FIELD_BUTTON, 140, 224, 96, 48, TFT_BLUE, "CANCEL", ""},
 
   {-1}
 };
@@ -172,7 +201,7 @@ void field_init(){
   field_list = main_list;
   memset(ft8_list, 0, sizeof(ft8_list));
   memset(console_text, 0, sizeof(console_text));
-	memset(logbook, 0, sizeof(logbook));
+	logbook_init();
   for (struct field *f = field_list; f->type != -1; f++){
     if (count < FIELDS_ALWAYS_ON)
       f->is_visible = true;
@@ -209,7 +238,6 @@ void field_init(){
 void field_clear_all(){
   int count = 0;
 
-  struct field *f = f_selected;
   for (struct field *f = field_list; f->type != -1; f++){
     if (count < FIELDS_ALWAYS_ON || (f_selected && f_selected->type == FIELD_TEXT && f->type == FIELD_KEY))
       f->is_visible = true;
@@ -227,25 +255,65 @@ struct field *field_get(const char *label){
   return NULL;  
 }
 
+struct field *dialog_box(const char *title, char const *fields_list){
+	char original_mode[30];
+	char list[1000];
+
+	struct field *f_original_selection = f_selected;
+	strcpy(original_mode, field_get("MODE")->value);
+	strcpy(list, fields_list);
+		
+	//clear every field
+  for (struct field *f = field_list; f->type != -1; f++)
+		f->is_visible = false;
+		
+  char *p = strtok(list, "/");
+  while (p){
+    field_show(p, true);
+    p = strtok(NULL, "/");
+  }
+
+	screen_fill_rect(0,0,SCREEN_WIDTH, SCREEN_HEIGHT, TFT_BLACK);
+	screen_draw_text(title, -1, 10, 5, TFT_WHITE, 4);
+	screen_fill_rect(0,30, SCREEN_WIDTH, 1, TFT_WHITE);	
+
+	struct field *f_touched = NULL;
+	while(1){	
+		f_touched = ui_slice();
+		if (f_touched && f_touched->type == FIELD_BUTTON){
+			Serial.printf("got a button touched: %s\n", f_touched->label);
+			break;	
+		}
+		delay(10);
+	}
+	field_set_panel(original_mode);
+	field_draw_all(1);
+	f_selected = f_original_selection;
+	return f_touched;
+}
+
 void field_set_panel(const char *mode){
   char list[100];
   
   field_clear_all();
+	keyboard_hide(); //fwiw
   if (!strcmp(mode, "LOGB")){
 		//toggle the logbook
-		if (field_get("LOGB") == f_selected){
+		/* if (field_get("LOGB") == f_selected){
 			field_set_panel(field_get("MODE")->value);
+			return;
 		}
-		else
-    	strcpy(list, "LOGB");
+		else */
+    	strcpy(list, "LOGB/x");
 	}
   else if (!strcmp(mode, "FT8")){
     strcpy(list,"ESC/F1/F2/F3/F4/F5/TX_PITCH/AUTO/TX1ST/REPEAT/FT8_LIST/WF");
 	}
-  else if (!strcmp(mode, "CW") || !strcmp(mode, "CWR"))
-    strcpy(list, "ESC/F1/F2/F3/F4/F5/PITCH/WPM/TEXT/SIDETONE/TEXT/CONSOLE/WF");  
+  else if (!strcmp(mode, "CW") || !strcmp(mode, "CWR")){
+    strcpy(list, "ESC/F1/F2/F3/F4/F5/PITCH/WPM/TEXT/SIDETONE/TEXT/CONSOLE/WF");
+	}  
   else
-    strcpy(list, "MIC/TX/RX/WF");  
+    strcpy(list, "MIC/TX/RX/WF/CONSOLE");  
 
   //clear the bottom row
   screen_fill_rect(0, SCREEN_HEIGHT - 48, SCREEN_WIDTH, 48, SCREEN_BACKGROUND_COLOR);
@@ -268,15 +336,15 @@ void field_set(const char *label, const char *value){
   else if (!strcmp(label, "6") || !strcmp(label, "7"))
     f = field_get("FT8_LIST");
 	else if (!strcmp(label, "QSO")){
-		Serial.println(__LINE__);
 		f = field_get("LOGB");
+		//Serial.printf("adding to logbook : %s\n", value);
 		logbook_update(value);
 	}
   else 
     f = field_get(label);
 
   if (!f){
-		Serial.printf("Couldn't find field[%s] to set to [%s]\n", label, value);
+		//Serial.printf("Couldn't find field[%s] to set to [%s]\n", label, value);
     return;
   }
   
@@ -309,18 +377,13 @@ void field_set(const char *label, const char *value){
     //always 250 points
     screen_waterfall_update(spectrum);
   }
-  else{
+  //else if (strlen(value) < FIELD_TEXT_MAX_LENGTH - 1){
+	else {
     if (!strcmp(label, "MODE"))
       field_set_panel(value);
     strcpy(f->value, value);
   }
   f->redraw = true;
-}
-
-void field_update_to_radio(char *label){
-  struct field *f = field_get(label);
-  if (!f) return;
-  f->update_to_radio = 1;
 }
 
 void field_show(const char *label, bool turn_on){
@@ -367,19 +430,31 @@ static int measure_text(const char *text, int font){
 
 void field_key_draw(struct field *f){
 	int background_color = TFT_SKYBLUE;
+	int text_color = TFT_BLACK;
+	char text[30];
 
 	if (f->label[0] == '#' && f->label[0] == 0)
 		return;
 
-	if (isdigit(f->value[0]) && edit_state == EDIT_STATE_SYM)
-		background_color = TFT_YELLOW;
-	else if (!strcmp(f->label, "del"))
+	if (!strcmp(f->label, "del"))
 		background_color = TFT_RED;
+	else if (!strcmp(f->label, "[x]")){
+		background_color = TFT_BLACK;
+		text_color = TFT_WHITE;
+	}
+	else if (!strcmp(f->label, "Start")){
+		if (!text_streaming)
+			background_color = TFT_YELLOW;
+	}
+	else if (!strcmp(f->label, "Stop")){
+		if (text_streaming)
+			background_color = TFT_YELLOW;
+	}
 
 	int x = f->x + f->w/2;
 	if (edit_state == EDIT_STATE_SYM){
 	 x -= measure_text(f->value, ZBITX_FONT_LARGE)/2;
-		if (strlen(f->value) == 2)
+		if (strlen(f->value) == 2 && f->value[0] == 'F')
 			background_color = TFT_GREEN;
 	}
 	else
@@ -389,12 +464,12 @@ void field_key_draw(struct field *f){
 
   if (strlen(f->value)){
     if(edit_state == EDIT_STATE_SYM)
-    	screen_draw_text(f->value, -1, x, (f->y)+12, TFT_BLACK, ZBITX_FONT_LARGE);
+    	screen_draw_text(f->value, -1, x, (f->y)+9, text_color, ZBITX_FONT_LARGE);
 		else 
-    	screen_draw_text(f->label, -1, x, (f->y)+12, TFT_BLACK, ZBITX_FONT_LARGE);
+    	screen_draw_text(f->label, -1, x, (f->y)+9, text_color, ZBITX_FONT_LARGE);
 	}
   else 
-    screen_draw_text(f->label, -1, x, (f->y)+12, TFT_BLACK, ZBITX_FONT_LARGE);
+    screen_draw_text(f->label, -1, x, (f->y)+9, text_color, ZBITX_FONT_LARGE);
 }
 
 void keyboard_redraw(){
@@ -410,13 +485,44 @@ static char keyboard_read(field *key){
   if (!key)
     return 0;
   char c = 0;
-  if(!strcmp(key->label, "RET")){
+  if(!strcmp(key->label, "[x]")){
 		keyboard_hide();
 		return 0;
 	}
+
+
+	if (edit_state == EDIT_STATE_SYM){
+		if ( key->value[0] == 'F' && isdigit(key->value[1])){
+			struct field *f = field_select(key->value);
+			f->update_to_radio = true;
+			return 0;
+		}
+		else if (!strcmp(key->value, "AR"))
+			return '+';
+		else if (!strcmp(key->value, "BT"))
+			return '&';
+	}
+
   if (!strcmp(key->label, "space"))
     c = ' ';
-  else if (!strcmp(key->label, "123#")){
+	else if (!strcmp(key->label, "Start")){
+		Serial.println("start to send!\n");
+		struct field *f = field_get("Stop");
+		if (f)
+			f->redraw = 1;
+		text_streaming = 1;
+		key->redraw = 1;
+		field_select("TEXT");
+	}
+	else  if (!strcmp(key->label, "Stop")){
+		Serial.println("stop sending!\n");
+		struct field *f = field_get("Start");
+		if (f)
+			f->redraw = 1;
+		text_streaming = 0;
+		key->redraw = 1;
+	}
+  else if (!strcmp(key->label, "Sym")){
 		if (edit_state == EDIT_STATE_SYM)
 			edit_state = EDIT_STATE_ALPHA;
 		else 
@@ -442,93 +548,32 @@ static char keyboard_read(field *key){
 
 void keyboard_show(uint8_t mode){
   edit_mode = mode;
+	struct field *f;
 
   screen_fill_rect(0, 128, 480, 192, TFT_BLACK);
-  field_show("Q", true);
-  field_show("W", true);
-  field_show("E", true);
-  field_show("R", true);
-  field_show("T", true);
-  field_show("Y", true);
-  field_show("U", true);
-  field_show("I", true);
-  field_show("O", true);
-  field_show("P", true);
 
-  field_show("A", true);
-  field_show("S", true);
-  field_show("D", true);
-  field_show("F", true);
-  field_show("G", true);
-  field_show("H", true);
-  field_show("J", true);
-  field_show("K", true);
-  field_show("L", true);
-  field_show("del", true);
-  
-  field_show("/", true);
-  field_show("Z", true);
-  field_show("X", true);
-  field_show("C", true);
-  field_show("V", true);
-  field_show("B", true);
-  field_show("N", true);
-  field_show("M", true);
-  field_show(".", true);
-  field_show("?", true);
-
-  field_show("123#", true);
-  field_show("#YES", true);
-  field_show("space", true);
-  field_show("#NO", true);
-  field_show("RET", true);
+  for (f = field_list; f->type != -1; f++)
+		if (f->type == FIELD_KEY)
+			field_show(f->label, true);
 	
+	if (f_selected){
+		if (strcmp(f_selected->label, "TEXT")){
+			field_show("Start", false);
+			field_show("Stop", false);
+		}
+	}
 	field_draw_all(true);
 }
 
 void keyboard_hide(){
-  field_show("Q", false);
-  field_show("W", false);
-  field_show("E", false);
-  field_show("R", false);
-  field_show("T", false);
-  field_show("Y", false);
-  field_show("U", false);
-  field_show("I", false);
-  field_show("O", false);
-  field_show("P", false);
+	struct field *f;
 
-  field_show("A", false);
-  field_show("S", false);
-  field_show("D", false);
-  field_show("F", false);
-  field_show("G", false);
-  field_show("H", false);
-  field_show("J", false);
-  field_show("K", false);
-  field_show("L", false);
-  field_show("del", false);
-  
-  field_show("/", false);
-  field_show("Z", false);
-  field_show("X", false);
-  field_show("C", false);
-  field_show("V", false);
-  field_show("B", false);
-  field_show("N", false);
-  field_show("M", false);
-  field_show(".", false);
-  field_show("?", false);
-
-  field_show("123#", false);
-  field_show("#YES", false);
-  field_show("space", false);
-  field_show("#NO", false);
-  field_show("RET", false);
+  for (f = field_list; f->type != -1; f++)
+		if (f->type == FIELD_KEY)
+			field_show(f->label, false);
 
 	if (edit_mode == -1)
 		return;
-	Serial.println("clearing screen");
   edit_mode = -1;
 	field_draw_all(true);
 }
@@ -613,32 +658,52 @@ void field_text_editor(char keystroke){
     f_selected->value[l+1] = 0;
   }
   f_selected->redraw = true;
+	f_selected->update_to_radio = true;
 }
 
 struct field *field_select(const char *label){
   struct field *f = field_get(label);
 
-
-  //Serial.print("selecting ");Serial.println(label);
+	Serial.printf("field_select(%s)\n", label);
   //if you have hit outside a field, then deselect the last one anyway
   if (!f){
     f_selected = NULL;
     return NULL;
   }
 
-	if (!strcmp(f->label, "RET")){
+	//some fields should not get focus anyway 
+	if (!strcmp(f->label, "WF") || !strcmp(f->label, "CONSOLE"))
+		return NULL;
+
+	if (!strcmp(f->label, "[x]")){
 		keyboard_hide();
+	}
+
+	if (!strcmp(f->label, "OPEN")){
+		Serial.println("Opening the logbook");
+		memset(logbook, 0, sizeof(logbook));
+		field_set_panel("LOGB");
+		field_select("LOGB");	
+		Serial.println("Opened!");
+	}
+	else if (!strcmp(f_selected->label, "SAVE")){
+		memset(logbook, 0, sizeof(logbook));
+		Serial.println("message buffer tbd");
+		//strcpy(message_buffer, "qso ");
 	}
 
   if (f_selected)
     f_selected->redraw = true; // redraw without the focus
   
-  
   if (f->type == FIELD_KEY && f_selected->type == FIELD_TEXT){
     char c = keyboard_read(f);
     last_key = c;
-		if (c > 0)
+		if (c > 0){
     	field_text_editor(c);
+			//hold updating to radio if the streaming is turned off
+			if (text_streaming == 0 && !strcmp(f_selected->label, "TEXT"))
+				f_selected->update_to_radio = false;
+		}
     return NULL;
   } 
 
@@ -687,7 +752,8 @@ struct field *field_select(const char *label){
     keyboard_show(EDIT_STATE_UPPER);
   }
 	else if (f->type == FIELD_BUTTON){
-		field_action(0);
+  	f->update_to_radio = true;
+		//field_action(0);
 	}
 
   // emit the new value of the field to the radio
@@ -747,9 +813,6 @@ void freq_draw(){
   char buff[20];
   char temp_str[20];
 
-	int v = vbatt/10;
-	sprintf(temp_str, "Batt:%d.%dv", v/10, v%10);
-	screen_draw_text(temp_str, -1, f->x + 130, f->y+6, TFT_WHITE, 1);
   //update the vfos
   if (vfo->value[0] == 'A')
       strcpy(vfo_a->value, f->value);
@@ -762,11 +825,11 @@ void freq_draw(){
       screen_draw_text(buff,  -1, f->x+5 , f->y+1,  TFT_BLACK, ZBITX_FONT_LARGE);
       sprintf(temp_str, "%d", (atoi(f->value) + atoi(rit_delta->value)));
       sprintf(buff, "RX:%s", freq_with_separators(temp_str));
-      screen_draw_text(buff, -1, f->x+5 , f->y+18, TFT_CYAN, ZBITX_FONT_LARGE);
+      screen_draw_text(buff, -1, f->x+5 , f->y+19, TFT_CYAN, ZBITX_FONT_LARGE);
     }
     else {
       sprintf(buff, "TX:%s", freq_with_separators(f->value));
-      screen_draw_text(buff, -1, f->x+5 , f->y+18, TFT_BLACK, ZBITX_FONT_LARGE);
+      screen_draw_text(buff, -1, f->x+5 , f->y+19, TFT_BLACK, ZBITX_FONT_LARGE);
       sprintf(temp_str, "%d", (atoi(f->value) + atoi(rit_delta->value)));
       sprintf(buff, "RX:%s", freq_with_separators(temp_str));
       screen_draw_text(buff, -1, f->x+5 , f->y+1 , TFT_CYAN, ZBITX_FONT_LARGE);
@@ -778,12 +841,12 @@ void freq_draw(){
       sprintf(buff, "TX:%s", freq_with_separators(temp_str));
       screen_draw_text(buff,  -1,f->x+5 , f->y+1, TFT_BLACK, ZBITX_FONT_LARGE);
       sprintf(buff, "RX:%s", freq_with_separators(f->value));
-      screen_draw_text(buff, -1, f->x+5 , f->y+18, TFT_CYAN, ZBITX_FONT_LARGE);
+      screen_draw_text(buff, -1, f->x+5 , f->y+19, TFT_CYAN, ZBITX_FONT_LARGE);
     }
     else {
       strcpy(temp_str, vfo_b->value);
       sprintf(buff, "TX:%s", freq_with_separators(temp_str));
-      screen_draw_text(buff, -1, f->x+5 , f->y+18 , TFT_BLACK, ZBITX_FONT_LARGE);
+      screen_draw_text(buff, -1, f->x+5 , f->y+19 , TFT_BLACK, ZBITX_FONT_LARGE);
       sprintf(buff, "RX:%d", atoi(f->value) + atoi(rit_delta->value));
       screen_draw_text(buff,  -1, f->x+5 , f->y+1, TFT_CYAN, ZBITX_FONT_LARGE);
     }
@@ -794,13 +857,13 @@ void freq_draw(){
       sprintf(buff, "B:%s", freq_with_separators(temp_str));
       screen_draw_text(buff, -1, f->x+5 , f->y+1, TFT_BLACK, ZBITX_FONT_LARGE);*/
       sprintf(buff, "A:%s", freq_with_separators(f->value));
-      screen_draw_text(buff, -1, f->x+5 , f->y+18, TFT_CYAN, ZBITX_FONT_LARGE);
+      screen_draw_text(buff, -1, f->x+5 , f->y+19, TFT_CYAN, ZBITX_FONT_LARGE);
     } else {
       /*strcpy(temp_str, vfo_b->value);
       sprintf(buff, "B:%s", freq_with_separators(temp_str));
       screen_draw_text(buff,  -1,f->x+5 , f->y+1, TFT_BLACK, ZBITX_FONT_LARGE);*/
       sprintf(buff, "TX:%s", freq_with_separators(f->value));
-      screen_draw_text(buff,  -1,f->x+5, f->y+18, TFT_CYAN, ZBITX_FONT_LARGE);
+      screen_draw_text(buff,  -1,f->x+5, f->y+19, TFT_CYAN, ZBITX_FONT_LARGE);
     }
   }
   else{ /// VFO B is active
@@ -810,14 +873,14 @@ void freq_draw(){
       sprintf(buff, "A:%s", freq_with_separators(temp_str));
       screen_draw_text(buff, -1, f->x+5 , f->y+1, TFT_BLACK, ZBITX_FONT_LARGE);
       sprintf(buff, "B:%s", freq_with_separators(f->value));
-      screen_draw_text(buff, -1, f->x+5 , f->y+15, TFT_CYAN, ZBITX_FONT_LARGE);
+      screen_draw_text(buff, -1, f->x+5 , f->y+19, TFT_CYAN, ZBITX_FONT_LARGE);
     }else {
       strcpy(temp_str, vfo_a->value);
       //sprintf(temp_str, "%d", vfo_a_freq);
       sprintf(buff, "A:%s", freq_with_separators(temp_str));
       screen_draw_text(buff, -1, f->x+5 , f->y+1, TFT_BLACK, ZBITX_FONT_LARGE);
       sprintf(buff, "TX:%s", freq_with_separators(f->value));
-      screen_draw_text(buff, -1, f->x+5 , f->y+15, TFT_CYAN, ZBITX_FONT_LARGE);
+      screen_draw_text(buff, -1, f->x+5 , f->y+19, TFT_CYAN, ZBITX_FONT_LARGE);
     }
   }
 }
@@ -836,10 +899,7 @@ void field_draw_cursor(uint16_t x, int y){
       screen_text_width("J", ZBITX_FONT_NORMAL), screen_text_height(ZBITX_FONT_NORMAL)-3, TFT_BLACK);
 }
 
-void field_console_append(const char *new_text){
-	char buff[100], *text;
-	sprintf(buff, "{%s}", new_text);
-	text = buff;
+void field_console_append(const char *text){
   while (*text){
     if (console_next >= sizeof(console_text))
       console_next = 0;
@@ -882,19 +942,19 @@ void field_console_reflow(field *f){
       break;
   }
 
-  //Serial.print("\nreflow begining set to ");Serial.println(index);
   uint16_t extent = 0;
   uint16_t  y = f->y;
   char line_buffer[1000];
   int i = 0;
 	int w = f->w - 4;
+	//place a marker on the start
+  console_text[index] = 0x80 + console_text[index];
   while(index != console_next){
     uint8_t c = console_text[index] & 0x7F; //strip the bit 7 as the newline marker
     //Serial.print((char)c);
     if (extent + font_width2[c] >= w || console_text[index] == '\n'){
       console_text[index] = 0x80 + console_text[index];
       line_buffer[i] = 0;
-      //Serial.printf("|console from %d at %d, %d, %s\n", index, f->x, y, line_buffer);
       extent = 0;
       i = 0;
     }
@@ -905,8 +965,6 @@ void field_console_reflow(field *f){
     if (index >= sizeof(console_text))
       index = 0;
   }
-
-  //Serial.printf("reflow ends at %d\n", index);
 }
 
 //we display the console last line first
@@ -919,7 +977,6 @@ void field_console_draw2(field *f){
 
   field_console_reflow(f);
  
-  //Serial.println("############### BEGIN console draw");
  
   //now, draw the last few lines
   nlines = f->h / 16;
@@ -950,38 +1007,6 @@ void field_console_draw2(field *f){
   }
 }
 
-//first break up the lines to see if the console top has changed
-// then draw the relevant portions
-
-void field_console_draw_old(field *f){
-  uint16_t nlines = f->h / 16;
-  uint16_t ncols = ((f->w-4)/7); // we are assuming 16x7 monospaced characters
-  int16_t pos = 0;
-  bool redraw_console = false;
-  char buff[50];
-  
-  uint16_t y = f->y;
-  pos = (console_next/ncols)*ncols;
-  pos -= (ncols * (nlines-1));
-  if (pos < 0)
-    pos += sizeof(console_text);
-
-  if (console_prev_top != pos){
-    redraw_console = true;
-     console_prev_top = pos;
-  }
-
-  for (int i =0; i < nlines; i++){
-    if (redraw_console || i == nlines-1)
-      screen_draw_mono((char *)(console_text + pos), ncols, f->x, y, TFT_WHITE);
-    pos += ncols;
-    //wrap the text around
-    if (pos >= sizeof(console_text))
-      pos -= sizeof(console_text);
-    y += 16;
-  }
-}
-
 /* FT8 routines */
 unsigned long last_ft8_cursor_movement = 0;
 
@@ -989,8 +1014,7 @@ void ft8_select(){
 	char buff[200];
 
 	struct ft8_message *m = ft8_list + ft8_cursor;
-	sprintf(ft8_message_buffer, "FT8 %s\n", m->data);
-	Serial.println(ft8_message_buffer);
+	sprintf(message_buffer, "FT8 %s\n", m->data);
 }
 
 void field_ft8_append(const char *msg){
@@ -1151,18 +1175,82 @@ void field_ft8_draw(field *f){
   } 
 }
 
+
 void smeter_draw(struct field *f){
-	int s = atoi(f->value)/100;
-	for (int i = 0 ; i < 9; i++){
-		if (s >= i)
-			screen_fill_rect(f->x + 5+ + (i * 10), f->y+6, 5, 5, TFT_GREEN);
-		else 
-			screen_fill_rect(f->x + 5 + (i * 10), f->y+6, 5, 5, TFT_LIGHTGREY);
+	char temp_str[100];
+	static int count = 0;
+
+	if (count++ % 25)
+		return;
+
+	screen_fill_rect(f->x, f->y, f->w, f->h, TFT_BLACK);
+
+	int v = vbatt/10;
+	sprintf(temp_str, "+%d.%dv", v/10, v%10);
+	screen_draw_text(temp_str, -1, f->x + 155, f->y+1, TFT_WHITE, 1);
+
+	struct field *f_tx = field_get("IN_TX");
+	if (!f_tx){
+		Serial.println("IN_TX field is missing");
+		return;
+	}
+	int in_tx = atoi(f_tx->value);
+	//Serial.printf("IN_TX is %d\n", in_tx);
+	 if (in_tx){
+		sprintf(temp_str, "%d W            SWR %d.%d", vfwd/10, vswr/10, vswr%10); 
+		screen_draw_text(temp_str, -1, f->x + 3, f->y + 1, TFT_WHITE, 2);
+		screen_draw_rect(f->x + 33,  f->y + 2, 60, 12, TFT_YELLOW);
+		screen_fill_rect(f->x + 34,  f->y + 3, vfwd, 10, TFT_RED);
+		return;
 	}
 
-/*
-	screen_fill_rect(f->x, f->y, f->w, f->y, TFT_BLACK);	
-	screen_fill_rect(f->x, f->y, 5 * s, 5, TFT_GREEN); */
+	int s = atoi(field_get("SMETER")->value)/200;
+	for (int i = 0 ; i < 6; i++){
+		int color = TFT_DARKGREY;
+		if (s >= i){
+			switch(i){
+				case 0: color=TFT_YELLOW;break;
+				case 1: color=TFT_YELLOW;break;
+				case 2: color=TFT_GREEN;break;
+				case 3: color=TFT_GREEN;break;
+				case 4: color=TFT_GREEN;break;
+				case 5: color=TFT_ORANGE;break;
+				case 6: color=TFT_RED;break;
+				case 7: color=TFT_RED;break;
+			}	
+		}
+		screen_fill_rect(f->x + 5 + (i * 20), f->y+1, 18, 5, color);
+		temp_str[1] = 0;
+		if (i < 5)
+			temp_str[0] = '1' + (i *2);
+		else
+			strcpy(temp_str, "+20");
+		screen_draw_text(temp_str, -1, f->x + 5 + (i * 20), f->y+7, TFT_WHITE, 1);
+		//screen_draw_text(temp_str, -1, f->x + 130, f->y+6, TFT_WHITE, 1);
+	}
+}
+
+void field_static_draw(field *f){
+	char *p, text_line[FIELD_TEXT_MAX_LENGTH];
+
+	p = f->value;
+	int y = f->y;
+	int i = 0;
+	while(*p){	
+		if (*p == '\n'){
+			text_line[i] = 0;
+			screen_draw_text(text_line, -1, f->x, y, TFT_WHITE, 4);
+			y += 30;
+			i = 0;
+		}
+		else if (*p != '\n' && i < sizeof(text_line) -1)
+			text_line[i++] = *p;
+		p++;
+	}
+	if (i > 0){
+		text_line[i] = 0;
+		screen_draw_text(text_line, -1, f->x, y, TFT_WHITE, 4);
+	}
 }
 
 
@@ -1184,8 +1272,6 @@ void field_draw(struct field *f){
   switch(f->type){
     case FIELD_WATERFALL:
       screen_waterfall_draw(f->x, f->y, f->w, f->h);
-			f2 = field_get("SMETER");
-			smeter_draw(f2);
       break;
     case FIELD_KEY:
 			field_key_draw(f);
@@ -1196,6 +1282,9 @@ void field_draw(struct field *f){
     case FIELD_TEXT:
 			field_text_draw(f);
       break;
+		case FIELD_STATIC:
+			field_static_draw(f);
+			break;
     case FIELD_CONSOLE:
       field_console_draw2(f);
       break;
@@ -1205,11 +1294,15 @@ void field_draw(struct field *f){
 		case FIELD_LOGBOOK:
 			field_logbook_draw(f);
 			break;
+		case FIELD_SMETER:
+			//smeter_draw(f);
+			return; // don't fall into the default background painting
     default:
       if (!strlen(f->value))
         screen_draw_text(f->label, -1, (f->x)+8, (f->y)+15, TFT_WHITE, ZBITX_FONT_NORMAL);
       else 
         screen_draw_text(f->label, -1, (f->x)+8, (f->y)+6, TFT_CYAN, ZBITX_FONT_NORMAL);
+
       screen_draw_text(f->value, -1, (f->x)+8, f->y + 24, 
         TFT_WHITE, ZBITX_FONT_NORMAL);
       break;
@@ -1222,17 +1315,18 @@ void field_action(uint8_t input){
   if (!f_selected)
     return;
   if (!strcmp(f_selected->label, "LOG")){
-		//Serial.println("Opening the logbook");
+		Serial.println("Opening the logbook");
 		field_set_panel("LOGB");
 		field_select("LOGB");	
     //reset_usb_boot(1<<PICO_DEFAULT_LED_PIN,0); //invokes reset into bootloader mode
   }  
+
 	if (f_selected->type == FIELD_FT8){
 		if (input == ZBITX_KEY_DOWN){
-			ft8_move_cursor(-1);
+			ft8_move_cursor(+1);
 		}
 		else if (input == ZBITX_KEY_UP)
-			ft8_move_cursor(+1);
+			ft8_move_cursor(-1);
 		else if (input == ZBITX_KEY_ENTER){
 			Serial.println("Ft selecting");
 			ft8_select();
@@ -1350,6 +1444,7 @@ void field_draw_all(bool all){
 
   if (all)
     screen_fill_rect(0,0,SCREEN_WIDTH, SCREEN_HEIGHT,SCREEN_BACKGROUND_COLOR);
+	
   for (f = field_list; f->type != -1; f++)
     if ((all || f->redraw) && f->is_visible){
 			if (edit_mode == -1 || f->y + f->h < 144 || f->type == FIELD_KEY
@@ -1358,17 +1453,42 @@ void field_draw_all(bool all){
       	f->redraw = false;
 			}
     }
+	f = field_get("METERS");
+	smeter_draw(f);
 }
 
 /* logbook routines */
+void logbook_init(){
+	log_top_index = 0;
+	log_selection = 0;
+	logbook_selected_id = 0;
+	memset(logbook, 0, sizeof(logbook));
+}
 
 void logbook_edit(struct logbook_entry *e){
-	field_set("CALLSIGN", e->callsign);
-	field_set("EXCH", e->exchange_recv);
-	field_set("RECV", e->rst_recv);
-	field_set("SENT", e->rst_sent);
-	field_set("NR", e->exchange_sent);
-	logbook_selected_id = e->qso_id;
+	char entry[100];
+
+	sprintf(entry, "%s on %s at %s hrs\nMode: %s\nFreq: %d KHz", 
+		e->callsign, e->date_utc, e->time_utc,
+		e->mode, e->frequency);
+	int qso_id = e->qso_id;
+	Serial.printf("deleteing %d\n", e->qso_id);
+	char qso_str[10];
+	sprintf(qso_str, "%d", e->qso_id);
+	field_set("MESSAGE", entry); 
+	struct field *f = dialog_box("Delete log entry?",  "MESSAGE/DELETE/CANCEL");
+	if (f){
+		if (!strcmp(f->label, "DELETE")){
+			field_set("QSODEL", qso_str); 
+			struct field *f = field_get("QSODEL");
+			field_select("QSODEL");
+			Serial.printf("deleting  2 %s\n", qso_str);
+			//sprintf(message_buffer, "delete %d hello everything is all right!!\n", qso_id);
+			memset(logbook, 0, sizeof(logbook));
+		}
+		else
+			Serial.printf("dialog : %s\n", f->label);
+	}
 }
 
 struct logbook_entry *logbook_get(int qso_id){
@@ -1393,6 +1513,7 @@ void logbook_update(const char *update_str){
 	if (!p)
 		return;
 	qso_id = atoi(p);
+	Serial.printf("qso_id was %d\n", qso_id);
 
 	// read the mode 
 	p = strsep(&record, "|");
@@ -1467,7 +1588,7 @@ void logbook_update(const char *update_str){
 		for (int i = 0; i < MAX_LOGBOOK; i++)
 			if (logbook[i].qso_id == 0){
 				e = logbook + i;
-        //Serial.printf("found an empty entry at %d\n", i);
+        Serial.printf("found an empty entry at %d\n", i);
 				break;
 			}
 	}
@@ -1505,13 +1626,13 @@ void field_logbook_draw(struct field *f){
 		log_top_index = log_selection - nlines + 1; 
 	for (int line = 0; line < nlines; line++){
 		struct logbook_entry *e = logbook + line + log_top_index;
-		int x = f->x + 2;
-
+		int x = f->x;
+/*
 		sprintf(buff, "%d", e->qso_id);
 		screen_draw_text(buff, -1, x, y, TFT_CYAN, 2);
-		x += 25;
-		
-		screen_draw_text(e->date_utc, -1, x, y, TFT_CYAN, 2);
+		x += 30;
+*/		
+		screen_draw_text(e->date_utc, -1, x, y, TFT_LIGHTGREY, 2);
 		x += 88;
 
 		int time_utc = atoi(e->time_utc);

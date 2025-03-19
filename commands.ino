@@ -30,15 +30,16 @@ void command_interpret(char c){
     in_field = true;
   }
   else if (c == COMMAND_END){
-    if(strlen(label) && strlen(value)){ //if we have a new value for the field, then act on it
-			//if (strcmp(label, "WF"))
-      //	Serial.print(label);Serial.print('=>');Serial.print(value);Serial.println(";");
+    if(strlen(label) /*&& strlen(value)*/){ //if we have a new value for the field, then act on it
+			if (strcmp(label, "WF")){
+      	//Serial.printf("%s > %s\n", label, value);
+			}
       field_set(label, value);
     }
     in_label = false;
     in_field = false;
   }
-  else if (!in_field) // only handle characters between { and }
+  else if (!in_field) // only:0 handle characters between { and }
     return;
   else if (in_label){
     //label is delimited by space

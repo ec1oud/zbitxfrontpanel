@@ -10,8 +10,12 @@ The blink.ino should work (note that the pico w and pico have different gpios fo
 #define USE_DMA
 #include <TFT_eSPI.h>
 #include <Wire.h>
-//#include <SerialBT.h>
 #include "zbitx.h"
+extern "C" {
+#include "pico.h"
+#include "pico/time.h"
+#include "pico/bootrom.h"
+}
 
 int freq = 7000000;
 unsigned long now = 0;
@@ -27,7 +31,7 @@ unsigned long next_repeat_time = 0;
 int vfwd=0, vswr=0, vref = 0, vbatt=0;
 int wheel_move = 0;
 
-char ft8_message_buffer[200];
+char message_buffer[100];
 
 
 void on_enc(){
@@ -37,13 +41,13 @@ void on_enc(){
       || (encoder_state == 1 && encoder_now == 3) 
       || (encoder_state == 3 && encoder_now == 2)
       || (encoder_state == 2 && encoder_now == 0)) 
-      wheel_move++;
+      wheel_move--;
       //field_action(ZBITX_KEY_DOWN);
     else if ((encoder_now == 0 && encoder_now == 2)
       || (encoder_state == 2 && encoder_now == 3)
       || (encoder_state == 3 && encoder_now == 1)
       || (encoder_state == 1 && encoder_now == 0))
-       wheel_move--;
+       wheel_move++;
       // field_action(ZBITX_KEY_UP); 
     encoder_state = encoder_now;    
   }
@@ -56,36 +60,49 @@ void wire_text(char *text){
 	Wire1.write(text, l + 1); //include the last zero
 }
 
-char buff_i2c_req[100];
+char buff_i2c_req[200];
+int req_count = 0;
 void on_request(){
   char c;
   //just update a single field
-  for (struct field *f = field_list; f->type != -1; f++)
+  for (struct field *f = field_list; f->type != -1; f++){
     if (f->update_to_radio){
-      f->update_to_radio = false;
+			f->update_to_radio = false;
       sprintf(buff_i2c_req, "%s %s", f->label, f->value);
-      //Wire1.write(buff_i2c_req, 30);
 			wire_text(buff_i2c_req);
       return;
     }
-  if (c = read_key()){
+	}
+/*
+  if (c = read_key() && text_streaming){
     sprintf(buff_i2c_req, "key %c", c);
-    //Wire1.write(buff_i2c_req, 30);
 		wire_text(buff_i2c_req);
-    //Serial.println(buff_i2c_req);
     return;      
   }
-
-	if (ft8_message_buffer[0] != 0){
-    strcpy(buff_i2c_req, ft8_message_buffer);
+*/
+	if (message_buffer[0] != 0){
+    strcpy(buff_i2c_req, message_buffer);
+		Serial.printf("Sending mb: [%s]\n", buff_i2c_req);
 		wire_text(buff_i2c_req);
-		//Serial.printf(">>>>>>>> sendin ft8 [%s]\n", buff_i2c_req);
-		ft8_message_buffer[0] = 0;
+		delay(10000);
+		message_buffer[0] = 0;
 		return;
 	}
-
+	
   //if we have nothing else to return, then return the battery output
-  sprintf(buff_i2c_req, "vbatt %d\npower %d\nvswr %d", vbatt, vfwd, vswr);
+  //sprintf(buff_i2c_req, "vbatt %d\npower %d\nvswr %d", vbatt, vfwd, vswr);
+	buff_i2c_req[0] = 2;
+
+	if (req_count < 5)	
+  	sprintf(buff_i2c_req, "vbatt %d", vbatt );
+	else if (req_count < 10)
+  	sprintf(buff_i2c_req, "power 0%d", vfwd );
+	else 
+  	sprintf(buff_i2c_req, "vswr 0%d", vswr);
+	//Serial.printf("req %d\n", req_count);
+	req_count++;
+	if(req_count >= 15)
+		req_count = 0;
 	wire_text(buff_i2c_req);  
 }
 
@@ -119,8 +136,11 @@ void measure_voltages(){
 	vswr = (10*(vfwd + vref))/(vfwd-vref);
 }
 
-void ui_slice(){
+/* it returns the field that was last selected */
+
+struct field *ui_slice(){
   uint16_t x, y;
+	struct field *f_touched = NULL;
 
 	if (now > last_blink + BLINK_RATE){
 		field_blink(-1);
@@ -148,17 +168,18 @@ void ui_slice(){
  
   if (!screen_read(&x, &y)){
       mouse_down = false;
-    return;
+    return NULL;
   }
 
   //check for user input
   struct field *f = field_at(x, y);
   if (!f)
-    return;
+    return NULL;
   //do selection only if the touch has started
   if (!mouse_down){
     field_select(f->label);
 		next_repeat_time = millis() + 400;
+		f_touched = f;
 	}
 	else if (next_repeat_time < millis() && f->type == FIELD_KEY){
     field_select(f->label);
@@ -166,14 +187,15 @@ void ui_slice(){
 	}
         
   mouse_down = true;
+	return f_touched; //if any ...
 }
 
 // the setup function runs once when you press reset or power the board
 void setup() {
   Serial.begin(115200);
-  delay(1000);
+	/* while(!Serial)
+		delay(100); */
   q_init(&q_incoming);
-//  Serial.println("Hello zBitx 11");
   Serial.println("Initializing the screen");  
   screen_init();
   field_init();
@@ -199,8 +221,13 @@ void setup() {
 
 	attachInterrupt(ENC_A, on_enc, CHANGE);
 	attachInterrupt(ENC_B, on_enc, CHANGE);
-	//attachInterrupt(ENC_S, on_enc, CHANGE);
 
+	field_set("9", "Waiting for the zBitx to start...\n");
+
+//	reset_usb_boot(1<<PICO_DEFAULT_LED_PIN,0); //invokes reset into bootloader mode
+	//get into flashing mode if the encoder switch is pressed
+	if (digitalRead(ENC_S) == LOW)
+		reset_usb_boot(0,0); //invokes reset into bootloader mode
 }
 
 int count = 0;

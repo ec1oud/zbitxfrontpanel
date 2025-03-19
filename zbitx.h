@@ -14,6 +14,7 @@
 #define ZBITX_KEY_DOWN 3
 #define ZBITX_KEY_ENTER 13 
 extern int8_t edit_mode;
+extern int text_streaming;
 
 //Some hardware definitions/pins
 #define ENC_S 1
@@ -24,6 +25,7 @@ extern int8_t edit_mode;
 
 //duration since the start of the controller in millis
 extern unsigned long now;
+extern int vfwd, vswr, vref, vbatt;
 
 void screen_init();
 void screen_fill_rect(int x, int y, int w, int h, int color);
@@ -105,7 +107,7 @@ struct ft8_message {
   char data[FT8_MAX_DATA];  
 };
 
-extern char ft8_message_buffer[];
+extern char message_buffer[];
 
 struct logbook_entry {
   uint32_t qso_id;
@@ -133,10 +135,9 @@ struct field *field_get(const char *label);
 void field_show(const char *label, bool turn_on);
 struct field *field_get_selected();
 struct field *field_select(const char *label);
-void field_panel(char *field_list);
+void field_panel(char *field_list);                                                                                                         
 void field_draw_all(bool all);
 void field_set_panel(const char *mode);
-void field_update_to_radio(char *label);
 void field_blink(int blink_state);
 char read_key();
 
