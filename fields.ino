@@ -48,12 +48,12 @@ struct field main_list[] = {
    //LOGGER FIELDS
   {FIELD_BUTTON, 0, 48, 48, 48,  TFT_DARKGREEN, "OPEN"},
   {FIELD_BUTTON, 48, 48, 48, 48,  TFT_DARKGREEN, "WIPE"},
+  {FIELD_BUTTON, 240, 48, 48, 48,  TFT_DARKGREEN, "SAVE"},
   {FIELD_TEXT, 96,48, 96, 24, TFT_BLACK, "CALL", "", "0,10"},
   {FIELD_TEXT, 192, 48, 48, 24, TFT_BLACK, "EXCH", "", "0,10"},
   {FIELD_TEXT, 96, 72, 48, 24, TFT_BLACK, "RECV", "", "0,10"},
   {FIELD_TEXT, 144, 72, 48, 24, TFT_BLACK, "SENT", "", "0,10"},
   {FIELD_TEXT, 192, 72, 48, 24, TFT_BLACK, "NR", "", "0,10"},
-  {FIELD_BUTTON, 240, 48, 48, 48,  TFT_DARKGREEN, "SAVE"},
 
 	//METERS is not SMETERS to prevent spiralling of request/responses
   {FIELD_SMETER, 243, 3, 180, 15, TFT_BLACK, "METERS", "0", "0/10000/1"},
@@ -141,8 +141,8 @@ struct field main_list[] = {
   {FIELD_BUTTON, 144, 272, 96, 48, TFT_BLUE, "RX", ""},
 
   //logbook
+  {FIELD_BUTTON, 0, 440, 40, 40, TFT_BLACK, "x",  ""},
   {FIELD_LOGBOOK, 0, 96, 480, 224, TFT_BLACK, "LOGB", "", "", field_logbook_draw},
-  {FIELD_LOGBOOK, 0, 440, 40, 40, TFT_BLACK, "x",  ""},
   
   //waterfall can get hidden by keyboard et al (or even removed by FT8 etc
   {FIELD_WATERFALL, 0, 96, 240, 176,  TFT_BLACK, "WF", ""}, //WARNING: Keep the height of the waterfall to be a multiple of 48 (see waterfal_update() code)
@@ -165,7 +165,7 @@ struct field main_list[] = {
 
 	/* alert box */
 
-	{FIELD_TITLE, 24, 96, SCREEN_WIDTH-96,  100, TFT_BLACK, "TITLE", "Hi", ""}, 	
+	{FIELD_TITLE, 24, 8, SCREEN_WIDTH-96, 48, TFT_BLACK, "TITLE", "Hi", ""}, 	
 	{FIELD_STATIC, 24, 96, SCREEN_WIDTH-96,  100, TFT_BLACK, "MESSAGE", "Hi", ""}, 	
   {FIELD_BUTTON, 24, 248, 96, 48, TFT_GREEN, "OK", ""},   
   {FIELD_BUTTON, 24, 248, 96, 48, TFT_RED, "DELETE", ""},   
@@ -188,15 +188,15 @@ struct field main_list[] = {
 
 	/* settings */
 
-  {FIELD_STATIC, 24,48, 96, 24, TFT_BLACK, "MY CALL", "", "0/10"},
-  {FIELD_TEXT, 24, 96, 96, 24, TFT_BLACK, "MYCALLSIGN", "", "0/10"},
-  {FIELD_STATIC, 144,48, 96, 24, TFT_BLACK, "MY GRID", "", "0/10"},
-  {FIELD_TEXT, 144,96, 96, 24, TFT_BLACK, "MYGRID", "", "0/10"},
-  {FIELD_STATIC, 264,48, 96, 24, TFT_BLACK, "PASS KEY", "", "0/10"},
-  {FIELD_TEXT, 264,96, 96, 24, TFT_BLACK, "PASSKEY", "", "0/10"},
-  {FIELD_SELECTION, 24,144, 96, 48, TFT_BLACK, "CW_INPUT", "", "IAMBIC/IMABICB/STRAIGHT"},
-  {FIELD_NUMBER, 144, 144, 96, 48, TFT_BLACK, "CW_DELAY", "300", "50/1000/50"},
-  {FIELD_NUMBER, 264, 144, 96, 48,  TFT_BLACK, "SIDETONE", "80", "0/100/5"},
+  {FIELD_STATIC, 26,48, 96, 0, TFT_BLACK, "MY CALL", "MY CALL:", "0/10"},
+  {FIELD_TEXT, 24, 62, 96, 24, TFT_BLACK, "MYCALLSIGN", "", "0/10"},
+  {FIELD_STATIC, 146,48, 96, 0, TFT_BLACK, "MY GRID", "MY GRID:", "0/10"},
+  {FIELD_TEXT, 144, 62, 96, 24, TFT_BLACK, "MYGRID", "", "0/10"},
+  {FIELD_STATIC, 266, 48, 96, 0, TFT_BLACK, "PASS KEY", "PASS KEY:", "0/10"},
+  {FIELD_TEXT, 264, 62, 96, 24, TFT_BLACK, "PASSKEY", "", "0/10"},
+  {FIELD_SELECTION, 24,112, 96, 48, TFT_BLACK, "CW_INPUT", "", "IAMBIC/IMABICB/STRAIGHT"},
+  {FIELD_NUMBER, 144, 112, 96, 48, TFT_BLACK, "CW_DELAY", "300", "50/1000/50"},
+  {FIELD_NUMBER, 264, 112, 96, 48,  TFT_BLACK, "SIDETONE", "80", "0/100/5"},
 	
   {-1}
 };
@@ -230,7 +230,7 @@ void field_init(){
     f->redraw = true;    
     count++;
   }
-  Serial.print("Total fields: ");Serial.println(count);
+  Serial.printf("Total fields: ");Serial.println(count);
 
   uint16_t extents[256];
   screen_text_extents(2, font_width2);
@@ -713,7 +713,7 @@ struct field *field_select(const char *label){
 	}
 
 	if (!strcmp(f->label, "SET")){
-		dialog_box("Radio", "MY CALL/MYCALLSIGN/MY GRID/MYGRID/PASS KEY/PASSKEY/CW_INPUT/CW_DELAY/CLOSE");
+		dialog_box("Settings", "MY CALL/MYCALLSIGN/MY GRID/MYGRID/PASS KEY/PASSKEY/CW_INPUT/CW_DELAY/SIDETONE/CLOSE");
 		return NULL;
 	}
 
@@ -734,7 +734,6 @@ struct field *field_select(const char *label){
 	}
 	else if (!strcmp(f_selected->label, "SAVE")){
 		memset(logbook, 0, sizeof(logbook));
-		Serial.println("message buffer tbd");
 		//strcpy(message_buffer, "qso ");
 	}
 
@@ -798,6 +797,7 @@ struct field *field_select(const char *label){
 		field_input(ZBITX_KEY_ENTER);
 	}
 
+	Serial.printf("field_select pushing to radio %s\n", f->label);
   // emit the new value of the field to the radio
   f->update_to_radio = true;
   return f;
@@ -1275,6 +1275,7 @@ void smeter_draw(struct field *f){
 void field_static_draw(field *f){
 	char *p, text_line[FIELD_TEXT_MAX_LENGTH];
 
+	Serial.printf("drawing %s\n", f->value);
 	p = f->value;
 	int y = f->y;
 	int i = 0;
@@ -1309,7 +1310,7 @@ void field_draw(struct field *f){
     screen_fill_rect(f->x, f->y, f->w, 48, TFT_BLACK);
   }
   else if (f->type != FIELD_FT8 && f->type != FIELD_LOGBOOK && f->type != FIELD_KEY
-		&& f->type != FIELD_STATIC){
+		&& f->type != FIELD_STATIC && f->type != FIELD_TITLE){
     //skip the background fill for the console on each character update
     screen_fill_round_rect(f->x+2, f->y+2, f->w-4, f->h-4, f->color_scheme);
     if (f == f_selected /*|| f->type == FIELD_KEY*/)

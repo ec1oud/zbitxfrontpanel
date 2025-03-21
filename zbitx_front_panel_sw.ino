@@ -57,7 +57,8 @@ int total = 0;
 
 void wire_text(char *text){
 	int l = strlen(text);
-  //Serial.printf("wire write (%d) %s\n", l, text);
+	if (isupper(*text))
+  	Serial.printf("wire write (%d) %s\n", l, text);
 	strcpy(last_sent, text);
 	Wire1.write(text, l + 1); //include the last zero
 	req_count++;
@@ -67,10 +68,21 @@ void wire_text(char *text){
 char buff_i2c_req[200];
 void on_request(){
   char c;
-  //just update a single field
+  //just update a single field, buttons first
+  for (struct field *f = field_list; f->type != -1; f++){
+    if (f->update_to_radio && f->type == FIELD_BUTTON){
+			f->update_to_radio = false;
+			Serial.print("single : ");
+      sprintf(buff_i2c_req, "%s %s", f->label, f->value);
+			wire_text(buff_i2c_req);
+      return;
+    }
+	}
+	//then the rest
   for (struct field *f = field_list; f->type != -1; f++){
     if (f->update_to_radio){
 			f->update_to_radio = false;
+			Serial.print("single : ");
       sprintf(buff_i2c_req, "%s %s", f->label, f->value);
 			wire_text(buff_i2c_req);
       return;
@@ -172,9 +184,11 @@ struct field *ui_slice(){
   struct field *f = field_at(x, y);
   if (!f)
     return NULL;
-	Serial.printf("%d: field %s\n", __LINE__, f->label);
+	Serial.printf("touched %d: field %s\n", __LINE__, f->label);
   //do selection only if the touch has started
   if (!mouse_down){
+		Serial.printf("mouse_down %d: field %s\n", __LINE__, f->label);
+		
     field_select(f->label);
 		next_repeat_time = millis() + 400;
 		f_touched = f;
@@ -182,9 +196,10 @@ struct field *ui_slice(){
 	else if (next_repeat_time < millis() && f->type == FIELD_KEY){
     field_select(f->label);
 		next_repeat_time = millis() + 400;
+		Serial.printf("else %d: field %s\n", __LINE__, f->label);
 	}
 	Serial.printf("%d: field %s\n", __LINE__, f->label);
-	Serial.printf("%d: sent %s\n", __LINE__, last_sent);
+	Serial.printf("%d: sent %d\n", __LINE__, total);
      
   mouse_down = true;
 	return f_touched; //if any ...
