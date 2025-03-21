@@ -19,7 +19,6 @@ int text_streaming = 0;
 struct logbook_entry logbook[MAX_LOGBOOK];
 int log_top_index = 0;
 int log_selection = 0;
-int logbook_selected_id = 0;
 
 void logbook_init();
 void field_logbook_draw(struct field *f);
@@ -32,8 +31,9 @@ struct field *field_list;
 struct field main_list[] = {
 
   //the first eight fiels are always visible
-  {FIELD_SELECTION, 0, 0, 48, 48,  TFT_BLACK, "MODE", "CW", "USB/LSB/CW/CWR/AM/FT8/2TONE/DIGI"},
-  {FIELD_SELECTION, 48, 0, 48, 48,  TFT_BLACK, "BAND", "20M", "80M/60M/40M/30M/20M/17M/15M/13M/10M"},  
+  {FIELD_BUTTON, 0, 0, 48, 48,  TFT_ORANGE, "MENU", "" },  
+  {FIELD_SELECTION, 48, 0, 48, 48,  TFT_BLACK, "MODE", "USB", "USB/LSB/CW/CWR/FT8/AM/DIGI/2TONE"},
+  /* {FIELD_SELECTION, 48, 0, 48, 48,  TFT_BLACK, "BAND", "20M", "80M/60M/40M/30M/20M/17M/15M/13M/10M"}, */  
   {FIELD_NUMBER, 96, 0, 48, 48,  TFT_BLACK, "DRIVE", "100", "0/100/5"},   
   {FIELD_NUMBER, 144, 0, 48, 48,  TFT_BLACK, "IF", "40", "0/100/1"},
   {FIELD_NUMBER, 192, 0, 48, 48,  TFT_BLACK, "BW", "2200", "50/5000/50"},
@@ -41,9 +41,9 @@ struct field main_list[] = {
   {FIELD_NUMBER, 432, 0, 48, 48,  TFT_BLACK, "AUDIO", "95", "0/100/1"},
 
   {FIELD_SELECTION, 288, 48, 48, 48,  TFT_BLACK, "SPAN", "25K", "25K/10K/6K/2.5K"},
-  {FIELD_SELECTION, 336, 48, 48, 48,  TFT_BLACK, "VFO", "A", "A/B"},
-  {FIELD_SELECTION, 384, 48, 48, 48,  TFT_BLACK, "RIT", "OFF", "ON/OFF"},  
-  {FIELD_SELECTION, 432, 48, 48, 48,  TFT_BLACK, "STEP", "1K", "10K/1K/500H/100H/10H"},
+  {FIELD_SELECTION, 336, 48, 48, 48,  TFT_BLACK, "RIT", "OFF", "ON/OFF"},  
+  {FIELD_SELECTION, 384, 48, 48, 48,  TFT_BLACK, "STEP", "1K", "10K/1K/500H/100H/10H"},
+  {FIELD_BUTTON, 432, 48, 48, 48,  TFT_BLUE, "SET", ""},
  
    //LOGGER FIELDS
   {FIELD_BUTTON, 0, 48, 48, 48,  TFT_DARKGREEN, "OPEN"},
@@ -134,7 +134,6 @@ struct field main_list[] = {
   //CW controls
   {FIELD_NUMBER, 288, 272, 48, 48, TFT_BLACK, "WPM", "12", "3/50/1"},
   {FIELD_NUMBER, 336, 272, 48, 48, TFT_BLACK, "PITCH", "600", "100/3000/10"},   
-  {FIELD_NUMBER, 384, 272, 96, 48,  TFT_BLACK, "SIDETONE", "80", "0/100/5"},
 
   //SSB/AM other voice modes
   {FIELD_NUMBER, 0, 272, 48, 48, TFT_BLACK, "MIC", "12", "0/100/5"},
@@ -148,9 +147,6 @@ struct field main_list[] = {
   //waterfall can get hidden by keyboard et al (or even removed by FT8 etc
   {FIELD_WATERFALL, 0, 96, 240, 176,  TFT_BLACK, "WF", ""}, //WARNING: Keep the height of the waterfall to be a multiple of 48 (see waterfal_update() code)
 
-  //These are extended controls of the main radio 
-  {FIELD_TOGGLE, 0, 96, 48, 48,  TFT_BLACK, "VFO", "A", "A/B"},  
-  {FIELD_TOGGLE, 96, 96, 0, 0,  TFT_BLACK, "SPLIT", "OFF", "ON/OFF"},  
 
   /* These fields are never visible */
   {FIELD_KEY, 20000, 20000, 0, 0,  TFT_BLACK, "VFOA", "14074000"},  
@@ -167,17 +163,41 @@ struct field main_list[] = {
   {FIELD_NUMBER, 0, 272, 48, 48, TFT_BLACK, "HIGH", "0", "0/5000/1"},
   {FIELD_NUMBER, 0, 272, 48, 48, TFT_BLACK, "LOW", "0", "0/5000/1"},
 
-  {FIELD_NUMBER, 432, 0, 48, 48,  TFT_BLACK, "AUDIO", "95", "0/100/1"},
-  {FIELD_SELECTION, 0, 0, 48, 48,  TFT_BLACK, "AGC", "MED", "OFF/SLOW/MED/FAST"},
-
 	/* alert box */
 
+	{FIELD_TITLE, 24, 96, SCREEN_WIDTH-96,  100, TFT_BLACK, "TITLE", "Hi", ""}, 	
 	{FIELD_STATIC, 24, 96, SCREEN_WIDTH-96,  100, TFT_BLACK, "MESSAGE", "Hi", ""}, 	
-  {FIELD_BUTTON, 24, 224, 96, 48, TFT_GREEN, "OK", ""},   
-  {FIELD_BUTTON, 24, 224, 96, 48, TFT_RED, "DELETE", ""},   
-  {FIELD_BUTTON, 24, 224, 96, 48, TFT_BLACK, "CLOSE", ""},   
-  {FIELD_BUTTON, 140, 224, 96, 48, TFT_BLUE, "CANCEL", ""},
+  {FIELD_BUTTON, 24, 248, 96, 48, TFT_GREEN, "OK", ""},   
+  {FIELD_BUTTON, 24, 248, 96, 48, TFT_RED, "DELETE", ""},   
+  {FIELD_BUTTON, 24, 248, 96, 48, TFT_BLACK, "CLOSE", ""},   
+  {FIELD_BUTTON, 140, 248, 96, 48, TFT_BLUE, "CANCEL", ""},
 
+  /* bandswitch, agc, etc. */
+  {FIELD_BUTTON, 24, 48, 48, 48,  TFT_BLACK, "10M", "1"},
+  {FIELD_BUTTON, 72, 48, 48, 48,  TFT_BLACK, "12M", "1"},
+  {FIELD_BUTTON, 120, 48, 48, 48,  TFT_BLACK, "15M", "1"},
+  {FIELD_BUTTON, 168, 48, 48, 48,  TFT_BLACK, "17M", "1"},
+  {FIELD_BUTTON, 216, 48, 48, 48,  TFT_BLACK, "20M", "1"},
+  {FIELD_BUTTON, 264, 48, 48, 48,  TFT_BLACK, "30M", "1"}, 
+  {FIELD_BUTTON, 312, 48, 48, 48,  TFT_BLACK, "40M", "1"},
+  {FIELD_BUTTON, 360, 48, 48, 48,  TFT_BLACK, "60M", "1"},
+  {FIELD_BUTTON, 408, 48, 48, 48,  TFT_BLACK, "80M", "1"},
+  {FIELD_SELECTION, 24, 96, 48, 48,  TFT_BLACK, "AGC", "MED", "OFF/SLOW/MED/FAST"},
+  {FIELD_SELECTION, 72, 96, 48, 48,  TFT_BLACK, "VFO", "A", "A/B"},
+  {FIELD_TOGGLE, 120, 96, 48, 48,  TFT_BLACK, "SPLIT", "OFF", "ON/OFF"},  
+
+	/* settings */
+
+  {FIELD_STATIC, 24,48, 96, 24, TFT_BLACK, "MY CALL", "", "0/10"},
+  {FIELD_TEXT, 24, 96, 96, 24, TFT_BLACK, "MYCALLSIGN", "", "0/10"},
+  {FIELD_STATIC, 144,48, 96, 24, TFT_BLACK, "MY GRID", "", "0/10"},
+  {FIELD_TEXT, 144,96, 96, 24, TFT_BLACK, "MYGRID", "", "0/10"},
+  {FIELD_STATIC, 264,48, 96, 24, TFT_BLACK, "PASS KEY", "", "0/10"},
+  {FIELD_TEXT, 264,96, 96, 24, TFT_BLACK, "PASSKEY", "", "0/10"},
+  {FIELD_SELECTION, 24,144, 96, 48, TFT_BLACK, "CW_INPUT", "", "IAMBIC/IMABICB/STRAIGHT"},
+  {FIELD_NUMBER, 144, 144, 96, 48, TFT_BLACK, "CW_DELAY", "300", "50/1000/50"},
+  {FIELD_NUMBER, 264, 144, 96, 48,  TFT_BLACK, "SIDETONE", "80", "0/100/5"},
+	
   {-1}
 };
 
@@ -267,17 +287,26 @@ struct field *dialog_box(const char *title, char const *fields_list){
   for (struct field *f = field_list; f->type != -1; f++)
 		f->is_visible = false;
 		
+	int last_blink = 0;
   char *p = strtok(list, "/");
+	field_set("TITLE", title);
+	field_show("TITLE", true);	
   while (p){
     field_show(p, true);
+		Serial.printf("activating %s\n", p);
     p = strtok(NULL, "/");
+		if (now > last_blink + BLINK_RATE){
+			field_blink(-1);
+			last_blink = now;
+		}
   }
-
-	screen_fill_rect(0,0,SCREEN_WIDTH, SCREEN_HEIGHT, TFT_BLACK);
-	screen_draw_text(title, -1, 10, 5, TFT_WHITE, 4);
+  screen_fill_rect(0,0,SCREEN_WIDTH, SCREEN_HEIGHT,SCREEN_BACKGROUND_COLOR);
+	//screen_draw_text(title, -1, 10, 5, TFT_WHITE, 4);
 	screen_fill_rect(0,30, SCREEN_WIDTH, 1, TFT_WHITE);	
 
 	struct field *f_touched = NULL;
+	f_selected = NULL;
+
 	while(1){	
 		f_touched = ui_slice();
 		if (f_touched && f_touched->type == FIELD_BUTTON){
@@ -286,6 +315,7 @@ struct field *dialog_box(const char *title, char const *fields_list){
 		}
 		delay(10);
 	}
+  screen_fill_rect(0,0,SCREEN_WIDTH, SCREEN_HEIGHT,SCREEN_BACKGROUND_COLOR);
 	field_set_panel(original_mode);
 	field_draw_all(1);
 	f_selected = f_original_selection;
@@ -310,7 +340,7 @@ void field_set_panel(const char *mode){
     strcpy(list,"ESC/F1/F2/F3/F4/F5/TX_PITCH/AUTO/TX1ST/REPEAT/FT8_LIST/WF");
 	}
   else if (!strcmp(mode, "CW") || !strcmp(mode, "CWR")){
-    strcpy(list, "ESC/F1/F2/F3/F4/F5/PITCH/WPM/TEXT/SIDETONE/TEXT/CONSOLE/WF");
+    strcpy(list, "ESC/F1/F2/F3/F4/F5/PITCH/WPM/TEXT/CONSOLE/WF");
 	}  
   else
     strcpy(list, "MIC/TX/RX/WF/CONSOLE");  
@@ -494,7 +524,8 @@ static char keyboard_read(field *key){
 	if (edit_state == EDIT_STATE_SYM){
 		if ( key->value[0] == 'F' && isdigit(key->value[1])){
 			struct field *f = field_select(key->value);
-			f->update_to_radio = true;
+			if (f)
+				f->update_to_radio = true;
 			return 0;
 		}
 		else if (!strcmp(key->value, "AR"))
@@ -661,6 +692,7 @@ void field_text_editor(char keystroke){
 	f_selected->update_to_radio = true;
 }
 
+//this is the user selecting a field (or a simulated touch on the field)
 struct field *field_select(const char *label){
   struct field *f = field_get(label);
 
@@ -675,15 +707,29 @@ struct field *field_select(const char *label){
 	if (!strcmp(f->label, "WF") || !strcmp(f->label, "CONSOLE"))
 		return NULL;
 
+	if (!strcmp(f->label, "MENU")){
+		dialog_box("Radio", "10M/12M/15M/17M/20M/30M/40M/60M/80M/AGC/VFO/SPLIT/CLOSE");
+		return NULL;
+	}
+
+	if (!strcmp(f->label, "SET")){
+		dialog_box("Radio", "MY CALL/MYCALLSIGN/MY GRID/MYGRID/PASS KEY/PASSKEY/CW_INPUT/CW_DELAY/CLOSE");
+		return NULL;
+	}
+
 	if (!strcmp(f->label, "[x]")){
 		keyboard_hide();
 	}
 
+	//this can get recusrive, it is calling field_select() again
+
 	if (!strcmp(f->label, "OPEN")){
 		Serial.println("Opening the logbook");
 		memset(logbook, 0, sizeof(logbook));
+		log_selection = 0;
+		f_selected = NULL;
 		field_set_panel("LOGB");
-		field_select("LOGB");	
+		//field_select("LOGB");	
 		Serial.println("Opened!");
 	}
 	else if (!strcmp(f_selected->label, "SAVE")){
@@ -706,9 +752,6 @@ struct field *field_select(const char *label){
 		}
     return NULL;
   } 
-
-  if (f_selected)
-    f_selected->redraw = true;
     
   //redraw the deselected field again to remove the focus
 	if (f->type != FIELD_BUTTON && f->type != FIELD_KEY){
@@ -752,8 +795,7 @@ struct field *field_select(const char *label){
     keyboard_show(EDIT_STATE_UPPER);
   }
 	else if (f->type == FIELD_BUTTON){
-  	f->update_to_radio = true;
-		//field_action(0);
+		field_input(ZBITX_KEY_ENTER);
 	}
 
   // emit the new value of the field to the radio
@@ -1239,8 +1281,8 @@ void field_static_draw(field *f){
 	while(*p){	
 		if (*p == '\n'){
 			text_line[i] = 0;
-			screen_draw_text(text_line, -1, f->x, y, TFT_WHITE, 4);
-			y += 30;
+			screen_draw_text(text_line, -1, f->x, y, TFT_WHITE, 2);
+			y += 18;
 			i = 0;
 		}
 		else if (*p != '\n' && i < sizeof(text_line) -1)
@@ -1249,10 +1291,13 @@ void field_static_draw(field *f){
 	}
 	if (i > 0){
 		text_line[i] = 0;
-		screen_draw_text(text_line, -1, f->x, y, TFT_WHITE, 4);
+		screen_draw_text(text_line, -1, f->x, y, TFT_WHITE, 2);
 	}
 }
 
+void field_title_draw(field *f){
+	screen_draw_text(f->value, -1, f->x,  f->y, TFT_WHITE, 4);
+}
 
 void field_draw(struct field *f){
 	struct field *f2;
@@ -1263,7 +1308,8 @@ void field_draw(struct field *f){
   if (f->type == FIELD_WATERFALL){
     screen_fill_rect(f->x, f->y, f->w, 48, TFT_BLACK);
   }
-  else if (f->type != FIELD_FT8 && f->type != FIELD_LOGBOOK && f->type != FIELD_KEY){
+  else if (f->type != FIELD_FT8 && f->type != FIELD_LOGBOOK && f->type != FIELD_KEY
+		&& f->type != FIELD_STATIC){
     //skip the background fill for the console on each character update
     screen_fill_round_rect(f->x+2, f->y+2, f->w-4, f->h-4, f->color_scheme);
     if (f == f_selected /*|| f->type == FIELD_KEY*/)
@@ -1284,6 +1330,9 @@ void field_draw(struct field *f){
       break;
 		case FIELD_STATIC:
 			field_static_draw(f);
+			break;
+		case FIELD_TITLE:
+			field_title_draw(f);
 			break;
     case FIELD_CONSOLE:
       field_console_draw2(f);
@@ -1310,17 +1359,19 @@ void field_draw(struct field *f){
   }
 }
 
-void field_action(uint8_t input){
+// some input to the field
+void field_input(uint8_t input){
 
   if (!f_selected)
     return;
+
+	// handle some of the buttons locally rather than propage them 
+	// to the radio
   if (!strcmp(f_selected->label, "LOG")){
 		Serial.println("Opening the logbook");
 		field_set_panel("LOGB");
 		field_select("LOGB");	
-    //reset_usb_boot(1<<PICO_DEFAULT_LED_PIN,0); //invokes reset into bootloader mode
   }  
-
 	if (f_selected->type == FIELD_FT8){
 		if (input == ZBITX_KEY_DOWN){
 			ft8_move_cursor(+1);
@@ -1431,8 +1482,10 @@ void field_action(uint8_t input){
 		if (input == ZBITX_KEY_DOWN && log_selection < MAX_LOGBOOK -1){
 			log_selection++;
 		}
-		if (input == ZBITX_KEY_ENTER)
+		if (input == ZBITX_KEY_ENTER){
+			Serial.print("logbook edit");
 			logbook_edit(logbook+log_selection);
+		}
 	}
 	//this propagates all buttons to the radio
   f_selected->update_to_radio = true;
@@ -1460,8 +1513,7 @@ void field_draw_all(bool all){
 /* logbook routines */
 void logbook_init(){
 	log_top_index = 0;
-	log_selection = 0;
-	logbook_selected_id = 0;
+	log_selection = -1;
 	memset(logbook, 0, sizeof(logbook));
 }
 
@@ -1472,18 +1524,17 @@ void logbook_edit(struct logbook_entry *e){
 		e->callsign, e->date_utc, e->time_utc,
 		e->mode, e->frequency);
 	int qso_id = e->qso_id;
-	Serial.printf("deleteing %d\n", e->qso_id);
 	char qso_str[10];
 	sprintf(qso_str, "%d", e->qso_id);
 	field_set("MESSAGE", entry); 
+	Serial.println("starting dialog");
 	struct field *f = dialog_box("Delete log entry?",  "MESSAGE/DELETE/CANCEL");
+	Serial.println("finshined dialog");
 	if (f){
 		if (!strcmp(f->label, "DELETE")){
 			field_set("QSODEL", qso_str); 
 			struct field *f = field_get("QSODEL");
 			field_select("QSODEL");
-			Serial.printf("deleting  2 %s\n", qso_str);
-			//sprintf(message_buffer, "delete %d hello everything is all right!!\n", qso_id);
 			memset(logbook, 0, sizeof(logbook));
 		}
 		else

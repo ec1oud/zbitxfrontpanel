@@ -42,26 +42,29 @@ void on_enc(){
       || (encoder_state == 3 && encoder_now == 2)
       || (encoder_state == 2 && encoder_now == 0)) 
       wheel_move--;
-      //field_action(ZBITX_KEY_DOWN);
-    else if ((encoder_now == 0 && encoder_now == 2)
+    else if ((encoder_state == 0 && encoder_now == 2)
       || (encoder_state == 2 && encoder_now == 3)
       || (encoder_state == 3 && encoder_now == 1)
       || (encoder_state == 1 && encoder_now == 0))
        wheel_move++;
-      // field_action(ZBITX_KEY_UP); 
     encoder_state = encoder_now;    
   }
 }
 
+char last_sent[1000]={0};
+int req_count = 0;
+int total = 0;
 
 void wire_text(char *text){
 	int l = strlen(text);
   //Serial.printf("wire write (%d) %s\n", l, text);
+	strcpy(last_sent, text);
 	Wire1.write(text, l + 1); //include the last zero
+	req_count++;
+	total += l;
 }
 
 char buff_i2c_req[200];
-int req_count = 0;
 void on_request(){
   char c;
   //just update a single field
@@ -73,13 +76,7 @@ void on_request(){
       return;
     }
 	}
-/*
-  if (c = read_key() && text_streaming){
-    sprintf(buff_i2c_req, "key %c", c);
-		wire_text(buff_i2c_req);
-    return;      
-  }
-*/
+
 	if (message_buffer[0] != 0){
     strcpy(buff_i2c_req, message_buffer);
 		Serial.printf("Sending mb: [%s]\n", buff_i2c_req);
@@ -152,15 +149,15 @@ struct field *ui_slice(){
 	}
 	if (digitalRead(ENC_S) == LOW && encoder_switch == false){
 		encoder_switch = true;
-		field_action(ZBITX_KEY_ENTER);
+		field_input(ZBITX_KEY_ENTER);
 	}
 
   if (wheel_move > 3){
-    field_action(ZBITX_KEY_UP);
+    field_input(ZBITX_KEY_UP);
     wheel_move = 0;
   }
   else if (wheel_move < -3){
-    field_action(ZBITX_KEY_DOWN);
+    field_input(ZBITX_KEY_DOWN);
     wheel_move = 0;
   }
   //redraw everything
@@ -175,6 +172,7 @@ struct field *ui_slice(){
   struct field *f = field_at(x, y);
   if (!f)
     return NULL;
+	Serial.printf("%d: field %s\n", __LINE__, f->label);
   //do selection only if the touch has started
   if (!mouse_down){
     field_select(f->label);
@@ -185,7 +183,9 @@ struct field *ui_slice(){
     field_select(f->label);
 		next_repeat_time = millis() + 400;
 	}
-        
+	Serial.printf("%d: field %s\n", __LINE__, f->label);
+	Serial.printf("%d: sent %s\n", __LINE__, last_sent);
+     
   mouse_down = true;
 	return f_touched; //if any ...
 }
@@ -243,4 +243,5 @@ void loop() {
 
   measure_voltages();
   delay(1);
+	//Serial.printf("total: %d\n", total);
 }

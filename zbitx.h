@@ -55,6 +55,7 @@ void screen_draw_mono(const char *text, int count, int x_at, int y_at, uint16_t 
 #define FIELD_FT8 10
 #define FIELD_LOGBOOK 11
 #define FIELD_SMETER 12
+#define FIELD_TITLE 13
 
 #define FIELD_TEXT_MAX_LENGTH 128
 
@@ -75,6 +76,12 @@ struct field {
   bool is_visible;
   bool redraw;
   bool update_to_radio;
+	
+	//this is set whenever the value is changed
+	//we compare this with the millis() at which
+	//we receive the update from the radio
+	//WIP	
+	unsigned int last_update;
 };
 
 /* A general purpose, reentrant Q for signals and 
@@ -134,7 +141,8 @@ struct field *field_at(uint16_t x, uint16_t y);
 struct field *field_get(const char *label);
 void field_show(const char *label, bool turn_on);
 struct field *field_get_selected();
-struct field *field_select(const char *label);
+struct field *field_select(const char *label); //user has touched the field
+void field_input(uint8_t input); //user input to the field (could be just selection too)
 void field_panel(char *field_list);                                                                                                         
 void field_draw_all(bool all);
 void field_set_panel(const char *mode);
