@@ -65,6 +65,61 @@ void wire_text(char *text){
 	total += l;
 }
 
+
+//comannd tokenizer
+
+static char cmd_label[FIELD_TEXT_MAX_LENGTH];
+static char cmd_value[1000]; // this should be enough
+static bool cmd_in_label = true;
+static bool cmd_in_field = false;
+
+void command_init(){
+  cmd_label[0] = 0;
+  cmd_value[0] = 0;
+  //cmd_p = cmd_label;
+  cmd_in_label = false;
+  cmd_in_field = false;
+}
+
+boolean in_tx(){
+	return false;
+}
+
+void command_interpret(char c){
+ 
+  if (c == COMMAND_START){
+    cmd_label[0] = 0;
+    cmd_value[0] = 0;
+    //cmd_p = cmd_label;
+    cmd_in_label = true;
+    cmd_in_field = true;
+  }
+  else if (c == COMMAND_END){
+    if(strlen(cmd_label)) 
+      field_set(cmd_label, cmd_value);
+    cmd_in_label = false;
+    cmd_in_field = false;
+  }
+  else if (!cmd_in_field) // only:0 handle characters between { and }
+    return;
+  else if (cmd_in_label){
+    //label is delimited by space
+    if (c != ' ' && strlen(cmd_label) < sizeof(cmd_label)-1){
+      int i = strlen(cmd_label);
+      cmd_label[i++] = c;
+      cmd_label[i]= 0;
+    }
+    else 
+      cmd_in_label = false;
+  }
+  else if (!cmd_in_label && strlen(cmd_value) < sizeof(cmd_value) -1 ){
+    int i = strlen(cmd_value);
+    cmd_value[i++] = c;
+    cmd_value[i] = 0;
+  }
+}
+
+
 char buff_i2c_req[200];
 void on_request(){
   char c;
@@ -235,7 +290,7 @@ void setup() {
 	attachInterrupt(ENC_A, on_enc, CHANGE);
 	attachInterrupt(ENC_B, on_enc, CHANGE);
 
-	field_set("9", "Waiting for the zBitx to start...\n");
+	field_set("9", "zBitx firmware v1.01\nWaiting for the zBitx to start...\n");
 
 //	reset_usb_boot(1<<PICO_DEFAULT_LED_PIN,0); //invokes reset into bootloader mode
 	//get into flashing mode if the encoder switch is pressed

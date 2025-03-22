@@ -28,9 +28,14 @@ The procedure is as follows:
 #include <SPI.h>
 #include <TFT_eSPI.h>       // Hardware-specific library
 #include <EEPROM.h>
+#include "zbitx.h"
 #include "free_font.h"
+
 TFT_eSPI tft = TFT_eSPI();  // Invoke custom library
 static uint8_t waterfall[240*200]; //Very Arbitrary!
+
+uint16_t font_width2[256];
+uint16_t font_width4[256];
 
 void screen_draw_mono(const char *text, int count, int x_at, int y_at);
 
@@ -74,6 +79,8 @@ void screen_init(){
   else 
     screen_read_calibration(calibration_data);
 
+  screen_text_extents(2, font_width2);
+  screen_text_extents(4, font_width4);
   tft.setTouch(calibration_data);
 }
 

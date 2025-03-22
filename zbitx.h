@@ -15,7 +15,7 @@
 #define ZBITX_KEY_ENTER 13 
 #define ZBITX_BUTTON_PRESS 14 
 extern int8_t edit_mode;
-extern int text_streaming;
+//extern int text_streaming;
 
 //Some hardware definitions/pins
 #define ENC_S 1
@@ -28,18 +28,23 @@ extern int text_streaming;
 extern unsigned long now;
 extern int vfwd, vswr, vref, vbatt;
 
+extern uint16_t font_width2[];
+extern uint16_t font_width4[];
 void screen_init();
 void screen_fill_rect(int x, int y, int w, int h, int color);
 void screen_draw_rect(int x, int y, int w, int h, int color);
 void screen_fill_round_rect(int x, int y, int w, int h, int color);
 void screen_draw_round_rect(int x, int y, int w, int h, int color);
 void screen_draw_text(const char *text, int length, int x, int y, int color, int font); 
+int16_t screen_text_width(char *text, uint8_t font);
 int16_t screen_text_width(const char *text, uint8_t font);
 int16_t screen_text_height(uint8_t font);
 void screen_pixel(int x, int y, uint16_t color);
 bool screen_read(uint16_t *x, uint16_t *y);
 void screen_text_extents(int font, uint16_t *extents); //extents upto 127, below 32 are randomf
 void screen_draw_mono(const char *text, int count, int x_at, int y_at, uint16_t color);
+void screen_waterfall_update(uint8_t *bins);
+void screen_waterfall_draw(int x, int y, int w, int h);
 
 /* struct field holds a value of radio controls like volume, frequency, etc. */
 
@@ -88,8 +93,7 @@ struct field {
 /* A general purpose, reentrant Q for signals and 
  *  non critical data that can be lost without much impact
  */
- 
-void q_init(struct Queue *p, int32_t length);
+void q_init(struct Queue *p);
 int q_length(struct Queue *p);
 int32_t q_read(struct Queue *p);
 int q_write(struct Queue *p, int32_t w);
@@ -136,7 +140,7 @@ struct logbook_entry {
 extern struct field *field_list;
 void field_clear_all();
 void field_init();
-void field_draw(struct field *f);
+//void field_draw(struct field *f);
 void field_set(const char *label, const char *value);
 struct field *field_at(uint16_t x, uint16_t y);
 struct field *field_get(const char *label);
@@ -144,15 +148,15 @@ void field_show(const char *label, bool turn_on);
 struct field *field_get_selected();
 struct field *field_select(const char *label); //user has touched the field
 void field_input(uint8_t input); //user input to the field (could be just selection too)
-void field_panel(char *field_list);                                                                                                         
+void field_draw(struct field *f, bool all);
 void field_draw_all(bool all);
 void field_set_panel(const char *mode);
 void field_blink(int blink_state);
-char read_key();
 
-void screen_waterfall_update(uint8_t *bins, int w, int h);
-void screen_waterfall_draw(int x, int y, int w, int h);
-void field_draw(struct field *f, bool all);
+//there is just one field (if any) selected at a time
+extern struct field *f_selected; 
+
+struct field *dialog_box(const char *title, char const *fields_list);
 
 /* keyboard */
 #define EDIT_STATE_ALPHA 0
@@ -170,8 +174,10 @@ void waterfall_show(int x, int y, int w, int h);
 void waterfall_update(uint8_t *bins, int w, int h);
 bool in_tx();
 
-/* specific field routines */
-void field_logbook_draw(struct field *f);
-
 #define CONSOLE_MAX_LINES 30
 #define CONSOLE_MAX_COLUMNS 22
+
+//command (from radio) text delimiters
+#define COMMAND_START '{'
+#define COMMAND_END '}'
+

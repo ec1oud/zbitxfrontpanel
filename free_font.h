@@ -52,6 +52,7 @@
 #define FONT7 7
 #define FONT8 8
 
+/*
 // Use the following when calling tft.setFreeFont()
 //
 // Reserved for GLCD font  // FF0
@@ -375,5 +376,5 @@
 #define FSBI12 1
 #define FSBI18 1
 #define FSBI24 1
-
+*/
 #endif // LOAD_GFXFF

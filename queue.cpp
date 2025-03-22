@@ -1,3 +1,4 @@
+#include <Arduino.h>
 #include "zbitx.h"
 
 void q_empty(struct Queue *p){
