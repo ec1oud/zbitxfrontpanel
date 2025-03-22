@@ -141,8 +141,8 @@ struct field main_list[] = {
   {FIELD_BUTTON, 144, 272, 96, 48, TFT_BLUE, "RX", ""},
 
   //logbook
-  {FIELD_BUTTON, 0, 440, 40, 40, TFT_BLACK, "x",  ""},
-  {FIELD_LOGBOOK, 0, 96, 480, 224, TFT_BLACK, "LOGB", "", "", field_logbook_draw},
+  {FIELD_LOGBOOK, 0, 48, 480, 224, TFT_BLACK, "LOGB", "", "", field_logbook_draw},
+  {FIELD_BUTTON, 24, 272, 96, 48, TFT_BLUE, "FINISH", ""},
   
   //waterfall can get hidden by keyboard et al (or even removed by FT8 etc
   {FIELD_WATERFALL, 0, 96, 240, 176,  TFT_BLACK, "WF", ""}, //WARNING: Keep the height of the waterfall to be a multiple of 48 (see waterfal_update() code)
@@ -230,7 +230,6 @@ void field_init(){
     f->redraw = true;    
     count++;
   }
-  Serial.printf("Total fields: ");Serial.println(count);
 
   uint16_t extents[256];
   screen_text_extents(2, font_width2);
@@ -252,7 +251,6 @@ void field_init(){
    //strcpy(qso, "QSO 3|FT8|21074|2023-05-04|0639|VU2ESE|-16|MK97|LZ6DX|-11|KN23||");
 	}
 */
-  Serial.println("Finished Initialization");
 }
 
 void field_clear_all(){
@@ -293,7 +291,6 @@ struct field *dialog_box(const char *title, char const *fields_list){
 	field_show("TITLE", true);	
   while (p){
     field_show(p, true);
-		Serial.printf("activating %s\n", p);
     p = strtok(NULL, "/");
 		if (now > last_blink + BLINK_RATE){
 			field_blink(-1);
@@ -310,7 +307,6 @@ struct field *dialog_box(const char *title, char const *fields_list){
 	while(1){	
 		f_touched = ui_slice();
 		if (f_touched && f_touched->type == FIELD_BUTTON){
-			Serial.printf("got a button touched: %s\n", f_touched->label);
 			break;	
 		}
 		delay(10);
@@ -696,7 +692,6 @@ void field_text_editor(char keystroke){
 struct field *field_select(const char *label){
   struct field *f = field_get(label);
 
-	Serial.printf("field_select(%s)\n", label);
   //if you have hit outside a field, then deselect the last one anyway
   if (!f){
     f_selected = NULL;
@@ -728,9 +723,14 @@ struct field *field_select(const char *label){
 		memset(logbook, 0, sizeof(logbook));
 		log_selection = 0;
 		f_selected = NULL;
-		field_set_panel("LOGB");
+		f->update_to_radio = 1;
+		struct field *f = dialog_box("Logbook", "LOGB/FINISH");
+		//field_set_panel("LOGB");
 		//field_select("LOGB");	
-		Serial.println("Opened!");
+		return NULL;
+	}
+	else if (!strcmp(f->label, "FINISH")){
+		f_selected = NULL;
 	}
 	else if (!strcmp(f_selected->label, "SAVE")){
 		memset(logbook, 0, sizeof(logbook));
@@ -794,10 +794,9 @@ struct field *field_select(const char *label){
     keyboard_show(EDIT_STATE_UPPER);
   }
 	else if (f->type == FIELD_BUTTON){
-		field_input(ZBITX_KEY_ENTER);
+		field_input(ZBITX_BUTTON_PRESS);
 	}
 
-	Serial.printf("field_select pushing to radio %s\n", f->label);
   // emit the new value of the field to the radio
   f->update_to_radio = true;
   return f;
@@ -1275,7 +1274,6 @@ void smeter_draw(struct field *f){
 void field_static_draw(field *f){
 	char *p, text_line[FIELD_TEXT_MAX_LENGTH];
 
-	Serial.printf("drawing %s\n", f->value);
 	p = f->value;
 	int y = f->y;
 	int i = 0;
@@ -1362,6 +1360,8 @@ void field_draw(struct field *f){
 
 // some input to the field
 void field_input(uint8_t input){
+
+	Serial.printf("field_input %d\n", input);
 
   if (!f_selected)
     return;
@@ -1528,9 +1528,7 @@ void logbook_edit(struct logbook_entry *e){
 	char qso_str[10];
 	sprintf(qso_str, "%d", e->qso_id);
 	field_set("MESSAGE", entry); 
-	Serial.println("starting dialog");
 	struct field *f = dialog_box("Delete log entry?",  "MESSAGE/DELETE/CANCEL");
-	Serial.println("finshined dialog");
 	if (f){
 		if (!strcmp(f->label, "DELETE")){
 			field_set("QSODEL", qso_str); 
@@ -1538,8 +1536,6 @@ void logbook_edit(struct logbook_entry *e){
 			field_select("QSODEL");
 			memset(logbook, 0, sizeof(logbook));
 		}
-		else
-			Serial.printf("dialog : %s\n", f->label);
 	}
 }
 
@@ -1676,9 +1672,12 @@ void field_logbook_draw(struct field *f){
 		log_top_index = log_selection;
 	if (log_selection >= log_top_index + nlines)
 		log_top_index = log_selection - nlines + 1; 
+
+	Serial.printf("logbook start at %d\n", log_top_index);
 	for (int line = 0; line < nlines; line++){
 		struct logbook_entry *e = logbook + line + log_top_index;
 		int x = f->x;
+
 /*
 		sprintf(buff, "%d", e->qso_id);
 		screen_draw_text(buff, -1, x, y, TFT_CYAN, 2);

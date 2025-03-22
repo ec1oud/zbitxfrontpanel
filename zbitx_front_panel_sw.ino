@@ -57,8 +57,8 @@ int total = 0;
 
 void wire_text(char *text){
 	int l = strlen(text);
-	if (isupper(*text))
-  	Serial.printf("wire write (%d) %s\n", l, text);
+/*	if (isupper(*text))
+  	Serial.printf("wire write (%d) %s\n", l, text); */
 	strcpy(last_sent, text);
 	Wire1.write(text, l + 1); //include the last zero
 	req_count++;
@@ -72,7 +72,6 @@ void on_request(){
   for (struct field *f = field_list; f->type != -1; f++){
     if (f->update_to_radio && f->type == FIELD_BUTTON){
 			f->update_to_radio = false;
-			Serial.print("single : ");
       sprintf(buff_i2c_req, "%s %s", f->label, f->value);
 			wire_text(buff_i2c_req);
       return;
@@ -82,7 +81,6 @@ void on_request(){
   for (struct field *f = field_list; f->type != -1; f++){
     if (f->update_to_radio){
 			f->update_to_radio = false;
-			Serial.print("single : ");
       sprintf(buff_i2c_req, "%s %s", f->label, f->value);
 			wire_text(buff_i2c_req);
       return;
@@ -91,7 +89,6 @@ void on_request(){
 
 	if (message_buffer[0] != 0){
     strcpy(buff_i2c_req, message_buffer);
-		Serial.printf("Sending mb: [%s]\n", buff_i2c_req);
 		wire_text(buff_i2c_req);
 		delay(10000);
 		message_buffer[0] = 0;
@@ -151,10 +148,14 @@ struct field *ui_slice(){
   uint16_t x, y;
 	struct field *f_touched = NULL;
 
+	//check if messages need to be processed
+  while(q_length(&q_incoming))
+    command_interpret((char)q_read(&q_incoming));
 	if (now > last_blink + BLINK_RATE){
 		field_blink(-1);
 		last_blink = now;
 	}
+
   // check the encoder state
 	if (digitalRead(ENC_S) == HIGH && encoder_switch == true){
 			encoder_switch = false;		
@@ -184,7 +185,6 @@ struct field *ui_slice(){
   struct field *f = field_at(x, y);
   if (!f)
     return NULL;
-	Serial.printf("touched %d: field %s\n", __LINE__, f->label);
   //do selection only if the touch has started
   if (!mouse_down){
 		Serial.printf("mouse_down %d: field %s\n", __LINE__, f->label);
@@ -198,8 +198,6 @@ struct field *ui_slice(){
 		next_repeat_time = millis() + 400;
 		Serial.printf("else %d: field %s\n", __LINE__, f->label);
 	}
-	Serial.printf("%d: field %s\n", __LINE__, f->label);
-	Serial.printf("%d: sent %d\n", __LINE__, total);
      
   mouse_down = true;
 	return f_touched; //if any ...
@@ -252,8 +250,6 @@ void loop() {
 
   ui_slice();
 
-  while(q_length(&q_incoming))
-    command_interpret((char)q_read(&q_incoming));
 	count++;
 
   measure_voltages();

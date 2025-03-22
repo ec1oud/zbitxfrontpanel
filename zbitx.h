@@ -13,6 +13,7 @@
 #define ZBITX_KEY_UP 2
 #define ZBITX_KEY_DOWN 3
 #define ZBITX_KEY_ENTER 13 
+#define ZBITX_BUTTON_PRESS 14 
 extern int8_t edit_mode;
 extern int text_streaming;
 

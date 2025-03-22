@@ -31,9 +31,9 @@ void command_interpret(char c){
   }
   else if (c == COMMAND_END){
     if(strlen(label) /*&& strlen(value)*/){ //if we have a new value for the field, then act on it
-			if (strcmp(label, "WF")){
-      	//Serial.printf("%s > %s\n", label, value);
-			}
+			/* if (strcmp(label, "WF")){
+      	Serial.printf("%s > %s\n", label, value);
+			}*/
       field_set(label, value);
     }
     in_label = false;
