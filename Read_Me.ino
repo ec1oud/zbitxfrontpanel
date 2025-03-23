@@ -17,4 +17,11 @@ The procedure is as follows:
 
 3.  Close the Arduino IDE and open it again so the added file is recognised.
 Tage you are using.
+
+
+To Do:
+  1. Add an alert box that shows that the log was added
+  2. Improve the text editor
+  3. Show the RX bandwidth on the waterfall
+  4. Make the tuning less jiggly (probably feedback from the main radio)
 */

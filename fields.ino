@@ -71,7 +71,7 @@ struct field *dialog_box(const char *title, char const *fields_list){
 		
 	int last_blink = 0;
   char *p = strtok(list, "/");
-	field_set("TITLE", title);
+	field_set("TITLE", title, false);
 	field_show("TITLE", true);	
   while (p){
     field_show(p, true);
@@ -138,7 +138,7 @@ void field_set_panel(const char *mode){
 }
 
 //set from the radio to the front panel
-void field_set(const char *label, const char *value){
+void field_set(const char *label, const char *value, bool update_to_radio){
   struct field *f;
 
   //translate a few fields 
@@ -154,16 +154,18 @@ void field_set(const char *label, const char *value){
   else 
     f = field_get(label);
 
-  if (!f){
-		//Serial.printf("Couldn't find field[%s] to set to [%s]\n", label, value);
+  if (!f)
     return;
-  }
-  
+
+  if (update_to_radio)
+    f->update_to_radio = true;
+
    //these are messages of FT8
   if(!strcmp(f->label, "FT8_LIST")){
     ft8_update(value);
     f->redraw = true;
   }
+
   //cw decoded text
   else if (!strcmp(f->label, "CONSOLE")){
     console_update(value);  

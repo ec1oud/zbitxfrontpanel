@@ -55,15 +55,6 @@ char last_sent[1000]={0};
 int req_count = 0;
 int total = 0;
 
-void wire_text(char *text){
-	int l = strlen(text);
-/*	if (isupper(*text))
-  	Serial.printf("wire write (%d) %s\n", l, text); */
-	strcpy(last_sent, text);
-	Wire1.write(text, l + 1); //include the last zero
-	req_count++;
-	total += l;
-}
 
 
 //comannd tokenizer
@@ -95,8 +86,11 @@ void command_interpret(char c){
     cmd_in_field = true;
   }
   else if (c == COMMAND_END){
-    if(strlen(cmd_label)) 
-      field_set(cmd_label, cmd_value);
+    if(strlen(cmd_label)){ 
+      //Serial.print("#");
+      field_set(cmd_label, cmd_value, false);
+      //Serial.println(cmd_label);
+    }
     cmd_in_label = false;
     cmd_in_field = false;
   }
@@ -119,6 +113,25 @@ void command_interpret(char c){
   }
 }
 
+// I2c routines
+// we separate out the updates with \n character
+void wire_text(char *text){
+	char i2c_buff2[200];
+
+  int l = strlen(text);
+  if (l > 255){
+    Serial.printf("Wire sending[%s] is too long\n", text);
+    return;
+  }
+
+	i2c_buff2[0] = l;
+  strcpy(i2c_buff2+1,text);
+
+	Wire1.write(i2c_buff2, l+1); //include the last zero
+	strcpy(last_sent, text);
+	req_count++;
+	total += l;
+}
 
 char buff_i2c_req[200];
 void on_request(){
@@ -149,22 +162,7 @@ void on_request(){
 		message_buffer[0] = 0;
 		return;
 	}
-	
-  //if we have nothing else to return, then return the battery output
-  //sprintf(buff_i2c_req, "vbatt %d\npower %d\nvswr %d", vbatt, vfwd, vswr);
-	buff_i2c_req[0] = 2;
-
-	if (req_count < 5)	
-  	sprintf(buff_i2c_req, "vbatt %d", vbatt );
-	else if (req_count < 10)
-  	sprintf(buff_i2c_req, "power 0%d", vfwd );
-	else 
-  	sprintf(buff_i2c_req, "vswr 0%d", vswr);
-	//Serial.printf("req %d\n", req_count);
-	req_count++;
-	if(req_count >= 15)
-		req_count = 0;
-	wire_text(buff_i2c_req);  
+  wire_text("NOTHING ");
 }
 
 int dcount = 0;
@@ -180,6 +178,7 @@ void on_receive(int len){
 void measure_voltages(){
   char buff[30];
   int f, r, b;
+	static int ticks = 0;
 
   f = (56 * analogRead(A0))/460;
   r = (56 *analogRead(A1))/460;
@@ -195,6 +194,23 @@ void measure_voltages(){
 	else
   	vref = ((vref * AVG_N) + r)/(AVG_N + 1);
 	vswr = (10*(vfwd + vref))/(vfwd-vref);
+
+	// update only once in a while
+	ticks++;
+	if (ticks % 40)
+		return;
+
+  sprintf(buff, "%d", vbatt);
+  field_set("VBATT", buff, true);
+
+  sprintf(buff, "%d", vfwd);
+  field_set("POWER", buff, true);
+
+  sprintf(buff, "%d", vswr);
+  field_set("REF", buff, true);
+
+  struct field *x = field_get("POWER");
+  //Serial.printf("power update is %d\n", x->update_to_radio);
 }
 
 /* it returns the field that was last selected */
@@ -220,14 +236,30 @@ struct field *ui_slice(){
 		field_input(ZBITX_KEY_ENTER);
 	}
 
-  if (wheel_move > 3){
-    field_input(ZBITX_KEY_UP);
-    wheel_move = 0;
+	int step_size = 3;
+	if (f_selected && !strcmp(f_selected->label, "FREQ")){
+		if (wheel_move > 0)
+			while(wheel_move--)
+				field_input(ZBITX_KEY_UP);
+		else if (wheel_move < 0)
+			while(wheel_move++)
+				field_input(ZBITX_KEY_DOWN);
+	}
+	else if (wheel_move > step_size){
+		while(wheel_move > 0){
+    	field_input(ZBITX_KEY_UP);
+			Serial.println("UP");
+    	wheel_move -= step_size;
+		}
   }
-  else if (wheel_move < -3){
-    field_input(ZBITX_KEY_DOWN);
-    wheel_move = 0;
+  else if (wheel_move < -step_size){
+		while(wheel_move < 0){
+    	field_input(ZBITX_KEY_DOWN);
+			Serial.println("DOWN");
+    	wheel_move += step_size;
+		}
   }
+	wheel_move = 0;
   //redraw everything
   field_draw_all(false);
  
@@ -242,8 +274,6 @@ struct field *ui_slice(){
     return NULL;
   //do selection only if the touch has started
   if (!mouse_down){
-		Serial.printf("mouse_down %d: field %s\n", __LINE__, f->label);
-		
     field_select(f->label);
 		next_repeat_time = millis() + 400;
 		f_touched = f;
@@ -251,7 +281,6 @@ struct field *ui_slice(){
 	else if (next_repeat_time < millis() && f->type == FIELD_KEY){
     field_select(f->label);
 		next_repeat_time = millis() + 400;
-		Serial.printf("else %d: field %s\n", __LINE__, f->label);
 	}
      
   mouse_down = true;
@@ -269,7 +298,7 @@ void setup() {
   field_init();
   field_clear_all();
   command_init();
-  field_set("MODE","CW");
+  field_set("MODE","CW", false);
 
   q_init(&q_incoming);
   Wire1.setSDA(6);
@@ -290,7 +319,7 @@ void setup() {
 	attachInterrupt(ENC_A, on_enc, CHANGE);
 	attachInterrupt(ENC_B, on_enc, CHANGE);
 
-	field_set("9", "zBitx firmware v1.01\nWaiting for the zBitx to start...\n");
+	field_set("9", "zBitx firmware v1.01\nWaiting for the zBitx to start...\n", false);
 
 //	reset_usb_boot(1<<PICO_DEFAULT_LED_PIN,0); //invokes reset into bootloader mode
 	//get into flashing mode if the encoder switch is pressed
@@ -304,8 +333,6 @@ void loop() {
 	now = millis();
 
   ui_slice();
-
-	count++;
 
   measure_voltages();
   delay(1);

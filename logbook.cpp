@@ -25,11 +25,11 @@ void logbook_edit(struct logbook_entry *e){
 	int qso_id = e->qso_id;
 	char qso_str[10];
 	sprintf(qso_str, "%d", e->qso_id);
-	field_set("MESSAGE", entry); 
+	field_set("MESSAGE", entry, true); 
 	struct field *f = dialog_box("Delete log entry?",  "MESSAGE/DELETE/CANCEL");
 	if (f){
 		if (!strcmp(f->label, "DELETE")){
-			field_set("QSODEL", qso_str); 
+			field_set("QSODEL", qso_str, true); 
 			struct field *f = field_get("QSODEL");
 			field_select("QSODEL");
 			memset(logbook, 0, sizeof(logbook));

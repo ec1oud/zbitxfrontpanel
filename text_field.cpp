@@ -107,7 +107,6 @@ char keyboard_read(struct field *key){
   if (!strcmp(key->label, "space"))
     c = ' ';
 	else if (!strcmp(key->label, "Start")){
-		Serial.println("start to send!\n");
 		struct field *f = field_get("Stop");
 		if (f)
 			f->redraw = 1;
@@ -116,7 +115,6 @@ char keyboard_read(struct field *key){
 		field_select("TEXT");
 	}
 	else  if (!strcmp(key->label, "Stop")){
-		Serial.println("stop sending!\n");
 		struct field *f = field_get("Start");
 		if (f)
 			f->redraw = 1;
@@ -265,14 +263,11 @@ void static field_text_editor(char keystroke){
 
 void text_input(struct field *key){
 
-		Serial.println(__LINE__);
 		if (f_selected->type != FIELD_TEXT)
 			return;
 
-		Serial.printf("key press %s\n", key->value);
     char c = keyboard_read(key);
     last_key = c;
-		Serial.printf("text_input %c\n", c);
 		if (c > 0){
     	field_text_editor(c);
 			//hold updating to radio if the streaming is turned off

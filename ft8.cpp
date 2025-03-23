@@ -86,21 +86,18 @@ void ft8_move_cursor(int by){
 	//if no message was selected, we just pick the last received
 	if (ft8_cursor == -1){
 		new_cursor = ft8_new_index(ft8_next, -1);
-		Serial.printf("ft8_move_cursor to %d @ %d\n", new_cursor, __LINE__);
 	}
 	if(by < 0){
 		new_cursor = ft8_new_index(ft8_cursor, -1); 
 		if (new_cursor == ft8_next|| ft8_list[new_cursor].id == 0 ||
 			ft8_list[new_cursor].id > ft8_list[ft8_cursor].id) 
 			new_cursor = ft8_cursor; 
-	Serial.printf("ft8_move_cursor to %d @ %d\n", new_cursor, __LINE__);
 	}
 	else if (by > 0){
 		new_cursor = ft8_new_index(ft8_cursor, +1);
 		if (new_cursor == ft8_next || ft8_list[new_cursor].id == 0 ||
 			ft8_list[new_cursor].id < ft8_list[ft8_cursor].id) 
 			new_cursor = ft8_cursor;
-	Serial.printf("ft8_move_cursor to %d @ %d\n", new_cursor, __LINE__);
 	}
 	//check that it is a valid message (ids start from 1, not zero)
 	if (ft8_list[new_cursor].id > 0)

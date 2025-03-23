@@ -234,7 +234,6 @@ void screen_waterfall_draw(int x, int y, int w, int h){
    tft.pushRect(x, y+j, w, 1, line);
    wf += 240;
   }
-//  Serial.print("waterfall used:");Serial.print(wf-waterfall);
 }
 
 //always 240 values!

@@ -141,7 +141,6 @@ extern struct field *field_list;
 void field_clear_all();
 void field_init();
 //void field_draw(struct field *f);
-void field_set(const char *label, const char *value);
 struct field *field_at(uint16_t x, uint16_t y);
 struct field *field_get(const char *label);
 void field_show(const char *label, bool turn_on);
@@ -152,6 +151,7 @@ void field_draw(struct field *f, bool all);
 void field_draw_all(bool all);
 void field_set_panel(const char *mode);
 void field_blink(int blink_state);
+void field_set(const char *label, const char *value, bool update_to_radio);
 
 //there is just one field (if any) selected at a time
 extern struct field *f_selected; 
