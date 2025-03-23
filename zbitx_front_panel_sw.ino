@@ -27,28 +27,42 @@ bool mouse_down = false;
 uint8_t encoder_state = 0;
 boolean encoder_switch = false;
 unsigned long next_repeat_time = 0;
+unsigned int last_wheel_moved = 0;
+unsigned int wheel_count = 0;
 
 int vfwd=0, vswr=0, vref = 0, vbatt=0;
 int wheel_move = 0;
 
 char message_buffer[100];
 
+int enc_state(){
+  return  (digitalRead(ENC_A)? 1:0) + (digitalRead(ENC_B) ? 2:0);
+}
 
 void on_enc(){
-  uint8_t encoder_now = digitalRead(ENC_A) + (2 * digitalRead(ENC_B));
-  if (encoder_now != encoder_state){
-    if ((encoder_state == 0 && encoder_now == 1) 
-      || (encoder_state == 1 && encoder_now == 3) 
-      || (encoder_state == 3 && encoder_now == 2)
-      || (encoder_state == 2 && encoder_now == 0)) 
-      wheel_move--;
-    else if ((encoder_state == 0 && encoder_now == 2)
-      || (encoder_state == 2 && encoder_now == 3)
-      || (encoder_state == 3 && encoder_now == 1)
-      || (encoder_state == 1 && encoder_now == 0))
-       wheel_move++;
-    encoder_state = encoder_now;    
-  }
+
+  uint8_t encoder_now = enc_state();
+	if (encoder_now == encoder_state)
+		return;
+
+	if (enc_state() != encoder_now)
+		return;
+  
+  if ((encoder_state == 0 && encoder_now == 1) 
+    || (encoder_state == 1 && encoder_now == 3) 
+    || (encoder_state == 3 && encoder_now == 2)
+    || (encoder_state == 2 && encoder_now == 0)) {
+    	wheel_move--;
+			wheel_count++;
+	}
+  else if ((encoder_state == 0 && encoder_now == 2)
+    || (encoder_state == 2 && encoder_now == 3)
+    || (encoder_state == 3 && encoder_now == 1)
+    || (encoder_state == 1 && encoder_now == 0)){
+      wheel_move++;
+			wheel_count++;
+	}
+  encoder_state = encoder_now;    
 }
 
 char last_sent[1000]={0};
@@ -76,7 +90,7 @@ boolean in_tx(){
 	return false;
 }
 
-void command_interpret(char c){
+void command_tokenize(char c){
  
   if (c == COMMAND_START){
     cmd_label[0] = 0;
@@ -86,10 +100,10 @@ void command_interpret(char c){
     cmd_in_field = true;
   }
   else if (c == COMMAND_END){
-    if(strlen(cmd_label)){ 
-      //Serial.print("#");
-      field_set(cmd_label, cmd_value, false);
-      //Serial.println(cmd_label);
+		if (strlen(cmd_label)){
+			struct field *f = field_get(cmd_label);
+			if (f && f->last_user_change + 1000 < now)
+     		field_set(cmd_label, cmd_value, false);
     }
     cmd_in_label = false;
     cmd_in_field = false;
@@ -221,7 +235,7 @@ struct field *ui_slice(){
 
 	//check if messages need to be processed
   while(q_length(&q_incoming))
-    command_interpret((char)q_read(&q_incoming));
+    command_tokenize((char)q_read(&q_incoming));
 	if (now > last_blink + BLINK_RATE){
 		field_blink(-1);
 		last_blink = now;
@@ -237,29 +251,31 @@ struct field *ui_slice(){
 	}
 
 	int step_size = 3;
-	if (f_selected && !strcmp(f_selected->label, "FREQ")){
+	//Serial.printf("wheel %d %d\n", last_wheel_moved, wheel_move);
+	/*
+	if (f_selected && !strcmp(f_selected->label, "FREQ") && wheel_move){
 		if (wheel_move > 0)
-			while(wheel_move--)
 				field_input(ZBITX_KEY_UP);
-		else if (wheel_move < 0)
-			while(wheel_move++)
+		else 
 				field_input(ZBITX_KEY_DOWN);
 	}
-	else if (wheel_move > step_size){
-		while(wheel_move > 0){
-    	field_input(ZBITX_KEY_UP);
-			Serial.println("UP");
-    	wheel_move -= step_size;
-		}
+	else 
+	*/
+  if (f_selected && !strcmp(f_selected->label, "FREQ"))
+    step_size = 1;
+
+	if (wheel_move > step_size){
+    field_input(ZBITX_KEY_UP);
+		Serial.println("UP");
+		wheel_move = 0;
+		last_wheel_moved = now;
   }
   else if (wheel_move < -step_size){
-		while(wheel_move < 0){
-    	field_input(ZBITX_KEY_DOWN);
-			Serial.println("DOWN");
-    	wheel_move += step_size;
-		}
+    field_input(ZBITX_KEY_DOWN);
+		Serial.println("DOWN");
+		wheel_move = 0;
+		last_wheel_moved = now;
   }
-	wheel_move = 0;
   //redraw everything
   field_draw_all(false);
  
@@ -319,7 +335,7 @@ void setup() {
 	attachInterrupt(ENC_A, on_enc, CHANGE);
 	attachInterrupt(ENC_B, on_enc, CHANGE);
 
-	field_set("9", "zBitx firmware v1.01\nWaiting for the zBitx to start...\n", false);
+	field_set("9", "zBitx firmware v1.02\nWaiting for the zBitx to start...\n", false);
 
 //	reset_usb_boot(1<<PICO_DEFAULT_LED_PIN,0); //invokes reset into bootloader mode
 	//get into flashing mode if the encoder switch is pressed

@@ -31,6 +31,8 @@ void field_init(){
       f->is_visible = false;
     f->redraw = true;    
     count++;
+		f->update_to_radio = false;
+		f->last_user_change= 0;
   }
 
   screen_text_extents(2, font_width2);
@@ -55,6 +57,11 @@ struct field *field_get(const char *label){
     if (!strcmp(label, f->label))
       return f;
   return NULL;  
+}
+
+void field_post_to_radio(struct field *f){
+	f->update_to_radio = true;
+	f->last_user_change = now;
 }
 
 struct field *dialog_box(const char *title, char const *fields_list){
@@ -158,7 +165,7 @@ void field_set(const char *label, const char *value, bool update_to_radio){
     return;
 
   if (update_to_radio)
-    f->update_to_radio = true;
+		field_post_to_radio(f);
 
    //these are messages of FT8
   if(!strcmp(f->label, "FT8_LIST")){
@@ -253,7 +260,7 @@ struct field *field_select(const char *label){
 
 	if (!strcmp(f->label, "OPEN")){
 		f_selected = NULL;
-		f->update_to_radio = 1;
+		field_post_to_radio(f);
 		logbook_init();// memset(logbook, 0, sizeof(logbook));
 		struct field *f = dialog_box("Logbook", "LOGB/FINISH");
 		//field_set_panel("LOGB");
@@ -331,7 +338,7 @@ struct field *field_select(const char *label){
 	}
 
   // emit the new value of the field to the radio
-  f->update_to_radio = true;
+	field_post_to_radio(f);
   return f;
 }
 
@@ -728,7 +735,7 @@ void field_input(uint8_t input){
 	else if (f_selected->type == FIELD_LOGBOOK)
 		logbook_input(input);
 	//this propagates all buttons to the radio
-  f_selected->update_to_radio = true;
+	field_post_to_radio(f_selected);
   f_selected->redraw = true;
 }
 

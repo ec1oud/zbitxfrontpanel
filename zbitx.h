@@ -82,7 +82,7 @@ struct field {
   bool is_visible;
   bool redraw;
   bool update_to_radio;
-	
+	unsigned int last_user_change;
 	//this is set whenever the value is changed
 	//we compare this with the millis() at which
 	//we receive the update from the radio
@@ -152,6 +152,7 @@ void field_draw_all(bool all);
 void field_set_panel(const char *mode);
 void field_blink(int blink_state);
 void field_set(const char *label, const char *value, bool update_to_radio);
+void field_post_to_radio(struct field *f);
 
 //there is just one field (if any) selected at a time
 extern struct field *f_selected; 

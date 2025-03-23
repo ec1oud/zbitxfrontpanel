@@ -95,7 +95,7 @@ char keyboard_read(struct field *key){
 		if ( key->value[0] == 'F' && isdigit(key->value[1])){
 			struct field *f = field_select(key->value);
 			if (f)
-				f->update_to_radio = true;
+				field_post_to_radio(f);
 			return 0;
 		}
 		else if (!strcmp(key->value, "AR"))
@@ -258,7 +258,7 @@ void static field_text_editor(char keystroke){
     f_selected->value[l+1] = 0;
   }
   f_selected->redraw = true;
-	f_selected->update_to_radio = true;
+	field_post_to_radio(f_selected);
 }
 
 void text_input(struct field *key){
