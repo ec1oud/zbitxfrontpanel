@@ -148,6 +148,8 @@ void field_set_panel(const char *mode){
 void field_set(const char *label, const char *value, bool update_to_radio){
   struct field *f;
 
+	Serial.println(label);
+
   //translate a few fields 
   if (!strcmp(label, "9") || !strcmp(label, "10"))
     f = field_get("CONSOLE");

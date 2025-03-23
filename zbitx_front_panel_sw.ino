@@ -102,7 +102,7 @@ void command_tokenize(char c){
   else if (c == COMMAND_END){
 		if (strlen(cmd_label)){
 			struct field *f = field_get(cmd_label);
-			if (f && f->last_user_change + 1000 < now)
+			if (f && (f->last_user_change + 1000 < now || f->type == FIELD_TEXT))
      		field_set(cmd_label, cmd_value, false);
     }
     cmd_in_label = false;
@@ -251,16 +251,6 @@ struct field *ui_slice(){
 	}
 
 	int step_size = 3;
-	//Serial.printf("wheel %d %d\n", last_wheel_moved, wheel_move);
-	/*
-	if (f_selected && !strcmp(f_selected->label, "FREQ") && wheel_move){
-		if (wheel_move > 0)
-				field_input(ZBITX_KEY_UP);
-		else 
-				field_input(ZBITX_KEY_DOWN);
-	}
-	else 
-	*/
   if (f_selected && !strcmp(f_selected->label, "FREQ"))
     step_size = 1;
 
