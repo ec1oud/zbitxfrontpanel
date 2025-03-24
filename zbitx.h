@@ -45,6 +45,8 @@ void screen_text_extents(int font, uint16_t *extents); //extents upto 127, below
 void screen_draw_mono(const char *text, int count, int x_at, int y_at, uint16_t color);
 void screen_waterfall_update(uint8_t *bins);
 void screen_waterfall_draw(int x, int y, int w, int h);
+void screen_bitblt(int x, int y, int w, int h, uint16_t *bitmap);
+void screen_draw_line(int start_x, int start_y, int end_x, int end_y, uint32_t color);
 
 /* struct field holds a value of radio controls like volume, frequency, etc. */
 
@@ -169,11 +171,11 @@ char keyboard_read();
 void keyboard__hide();
 bool text_edit(char *label, char *value, uint8_t mode); //mode from the edit states liste above
 
-void radio_display_show();
+void waterfall_draw(struct field *f);
+void waterfall_update(uint8_t *bins);
+void waterfall_init();
 
-void waterfall_show(int x, int y, int w, int h);
-void waterfall_update(uint8_t *bins, int w, int h);
-bool in_tx();
+//bool in_tx();
 
 #define CONSOLE_MAX_LINES 30
 #define CONSOLE_MAX_COLUMNS 22

@@ -22,8 +22,12 @@ void field_init(){
   int count = 0;
 
   field_list = main_list;
+
 	ft8_init();
 	logbook_init();
+	console_init();
+	waterfall_init();
+
   for (struct field *f = field_list; f->type != -1; f++){
     if (count < FIELDS_ALWAYS_ON)
       f->is_visible = true;
@@ -197,7 +201,7 @@ void field_set(const char *label, const char *value, bool update_to_radio){
       spectrum[i] = v;
     }
     //always 250 points
-    screen_waterfall_update(spectrum);
+    waterfall_update(spectrum);
   }
   //else if (strlen(value) < FIELD_TEXT_MAX_LENGTH - 1){
 	else {
@@ -570,10 +574,8 @@ void field_draw(struct field *f){
 		f->draw(f);
 		return;
 	}
-  if (f->type == FIELD_WATERFALL){
-    screen_fill_rect(f->x, f->y, f->w, 48, TFT_BLACK);
-  }
-  else if (f->type != FIELD_FT8 && f->type != FIELD_LOGBOOK && f->type != FIELD_KEY
+
+  if (f->type != FIELD_FT8 && f->type != FIELD_LOGBOOK && f->type != FIELD_KEY
 		&& f->type != FIELD_STATIC && f->type != FIELD_TITLE){
     //skip the background fill for the console on each character update
     screen_fill_round_rect(f->x+2, f->y+2, f->w-4, f->h-4, f->color_scheme);
@@ -582,7 +584,7 @@ void field_draw(struct field *f){
   }
   switch(f->type){
     case FIELD_WATERFALL:
-      screen_waterfall_draw(f->x, f->y, f->w, f->h);
+      waterfall_draw(f);
       break;
     case FIELD_KEY:
 			key_draw(f);
