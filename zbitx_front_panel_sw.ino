@@ -102,7 +102,9 @@ void command_tokenize(char c){
   else if (c == COMMAND_END){
 		if (strlen(cmd_label)){
 			struct field *f = field_get(cmd_label);
-			if (f && (f->last_user_change + 1000 < now || f->type == FIELD_TEXT))
+			if (!f)  // some are not really fields but just updates, like QSO
+     		field_set(cmd_label, cmd_value, false);
+      else if (f->last_user_change + 1000 < now || f->type == FIELD_TEXT)
      		field_set(cmd_label, cmd_value, false);
     }
     cmd_in_label = false;
@@ -256,13 +258,11 @@ struct field *ui_slice(){
 
 	if (wheel_move > step_size){
     field_input(ZBITX_KEY_UP);
-		Serial.println("UP");
 		wheel_move = 0;
 		last_wheel_moved = now;
   }
   else if (wheel_move < -step_size){
     field_input(ZBITX_KEY_DOWN);
-		Serial.println("DOWN");
 		wheel_move = 0;
 		last_wheel_moved = now;
   }
@@ -281,12 +281,12 @@ struct field *ui_slice(){
   //do selection only if the touch has started
   if (!mouse_down){
     field_select(f->label);
-		next_repeat_time = millis() + 400;
+		next_repeat_time = millis() + 1500;
 		f_touched = f;
 	}
 	else if (next_repeat_time < millis() && f->type == FIELD_KEY){
     field_select(f->label);
-		next_repeat_time = millis() + 400;
+		next_repeat_time = millis() + 300;
 	}
      
   mouse_down = true;
@@ -325,7 +325,7 @@ void setup() {
 	attachInterrupt(ENC_A, on_enc, CHANGE);
 	attachInterrupt(ENC_B, on_enc, CHANGE);
 
-	field_set("9", "zBitx firmware v1.02\nWaiting for the zBitx to start...\n", false);
+	field_set("9", "zBitx firmware v1.03\nWaiting for the zBitx to start...\n", false);
 
 //	reset_usb_boot(1<<PICO_DEFAULT_LED_PIN,0); //invokes reset into bootloader mode
 	//get into flashing mode if the encoder switch is pressed

@@ -8,7 +8,6 @@ struct field main_list[] = {
   //the first eight fiels are always visible
   {FIELD_BUTTON, 0, 0, 48, 48,  TFT_ORANGE, "MENU", "" },  
   {FIELD_SELECTION, 48, 0, 48, 48,  TFT_BLACK, "MODE", "USB", "USB/LSB/CW/CWR/FT8/AM/DIGI/2TONE"},
-  /* {FIELD_SELECTION, 48, 0, 48, 48,  TFT_BLACK, "BAND", "20M", "80M/60M/40M/30M/20M/17M/15M/13M/10M"}, */  
   {FIELD_NUMBER, 96, 0, 48, 48,  TFT_BLACK, "DRIVE", "100", "0/100/5"},   
   {FIELD_NUMBER, 144, 0, 48, 48,  TFT_BLACK, "IF", "40", "0/100/1"},
   {FIELD_SELECTION, 192, 0, 48, 48,  TFT_BLACK, "RIT", "OFF", "ON/OFF"},

@@ -22,12 +22,8 @@ void field_init(){
   int count = 0;
 
   field_list = main_list;
-
 	ft8_init();
 	logbook_init();
-	console_init();
-	waterfall_init();
-
   for (struct field *f = field_list; f->type != -1; f++){
     if (count < FIELDS_ALWAYS_ON)
       f->is_visible = true;
@@ -84,13 +80,14 @@ struct field *dialog_box(const char *title, char const *fields_list){
   char *p = strtok(list, "/");
 	field_set("TITLE", title, false);
 	field_show("TITLE", true);	
+
   while (p){
     field_show(p, true);
     p = strtok(NULL, "/");
-		if (now > last_blink + BLINK_RATE){
+		/* if (now > last_blink + BLINK_RATE){
 			field_blink(-1);
 			last_blink = now;
-		}
+		}*/
   }
   screen_fill_rect(0,0,SCREEN_WIDTH, SCREEN_HEIGHT,SCREEN_BACKGROUND_COLOR);
 	//screen_draw_text(title, -1, 10, 5, TFT_WHITE, 4);
@@ -115,19 +112,11 @@ struct field *dialog_box(const char *title, char const *fields_list){
 
 void field_set_panel(const char *mode){
   char list[100];
-  
+ 
+	Serial.println(mode); 
   field_clear_all();
 	keyboard_hide(); //fwiw
-  if (!strcmp(mode, "LOGB")){
-		//toggle the logbook
-		/* if (field_get("LOGB") == f_selected){
-			field_set_panel(field_get("MODE")->value);
-			return;
-		}
-		else */
-    	strcpy(list, "LOGB/x");
-	}
-  else if (!strcmp(mode, "FT8")){
+  if (!strcmp(mode, "FT8")){
     strcpy(list,"ESC/F1/F2/F3/F4/F5/TX_PITCH/AUTO/TX1ST/REPEAT/FT8_LIST/WF");
 	}
   else if (!strcmp(mode, "CW") || !strcmp(mode, "CWR")){
@@ -151,8 +140,6 @@ void field_set_panel(const char *mode){
 //set from the radio to the front panel
 void field_set(const char *label, const char *value, bool update_to_radio){
   struct field *f;
-
-	Serial.println(label);
 
   //translate a few fields 
   if (!strcmp(label, "9") || !strcmp(label, "10"))
@@ -181,7 +168,7 @@ void field_set(const char *label, const char *value, bool update_to_radio){
 
   //cw decoded text
   else if (!strcmp(f->label, "CONSOLE")){
-    console_update(value);  
+    console_update(f, label, value);  
     f->redraw = true;
   }
   else if (!strcmp(f->label, "WF")){
@@ -201,7 +188,7 @@ void field_set(const char *label, const char *value, bool update_to_radio){
       spectrum[i] = v;
     }
     //always 250 points
-    waterfall_update(spectrum);
+    screen_waterfall_update(spectrum);
   }
   //else if (strlen(value) < FIELD_TEXT_MAX_LENGTH - 1){
 	else {
@@ -574,8 +561,10 @@ void field_draw(struct field *f){
 		f->draw(f);
 		return;
 	}
-
-  if (f->type != FIELD_FT8 && f->type != FIELD_LOGBOOK && f->type != FIELD_KEY
+  if (f->type == FIELD_WATERFALL){
+    screen_fill_rect(f->x, f->y, f->w, 48, TFT_BLACK);
+  }
+  else if (f->type != FIELD_FT8 && f->type != FIELD_LOGBOOK && f->type != FIELD_KEY
 		&& f->type != FIELD_STATIC && f->type != FIELD_TITLE){
     //skip the background fill for the console on each character update
     screen_fill_round_rect(f->x+2, f->y+2, f->w-4, f->h-4, f->color_scheme);
@@ -584,7 +573,7 @@ void field_draw(struct field *f){
   }
   switch(f->type){
     case FIELD_WATERFALL:
-      waterfall_draw(f);
+      screen_waterfall_draw(f->x, f->y, f->w, f->h);
       break;
     case FIELD_KEY:
 			key_draw(f);
@@ -649,6 +638,7 @@ void field_input(uint8_t input){
   else if(f_selected->type == FIELD_SELECTION){
     char *p, *last, *next, b[100], *first;
 
+		Serial.printf("changing %s\n", f_selected->label);
     strcpy(b, f_selected->selection);
     p = strtok(b, "/");
     first = p;
@@ -678,8 +668,10 @@ void field_input(uint8_t input){
         strcpy(f_selected->value, last);
       }
       //REMOVE THIS IN PRODUCTION
-      if (!strcmp(f_selected->label, "MODE"))
+      if (!strcmp(f_selected->label, "MODE")){
+				Serial.printf("Setting mode locally tp %s\n", f_selected->value);
         field_set_panel(f_selected->value);
+			}
     }
     else if (input == ZBITX_KEY_UP){
       //move to the next selection
@@ -690,7 +682,7 @@ void field_input(uint8_t input){
         strcpy(f_selected->value, first); // roll over
 
       //REMOVE THIS IN PRODUCTION!
-      if (!strcmp(f_selected->label, "s"))
+      if (!strcmp(f_selected->label, "MODE"))
         field_set_panel(f_selected->value);
     }
   } 

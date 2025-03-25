@@ -52,6 +52,7 @@ void logbook_update(const char *update_str){
 		rst_recv[10], exchange_sent[10], exchange_recv[10], contact_callsign[10],
 		buff[200], *record;
 
+  //Serial.printf("log update: %s", update_str);
 	strcpy(buff, update_str);
 	record = buff;
 	//read the QSO id  
@@ -174,6 +175,8 @@ void logbook_draw(struct field *f){
 		struct logbook_entry *e = logbook + line + log_top_index;
 		int x = f->x;
 
+    if (!e->date_utc[0])
+      continue;
 /*
 		sprintf(buff, "%d", e->qso_id);
 		screen_draw_text(buff, -1, x, y, TFT_CYAN, 2);
@@ -204,7 +207,7 @@ void logbook_draw(struct field *f){
 		strcpy(buff, e->rst_recv);strcat(buff, " ");strcat(buff, e->exchange_recv);
 		screen_draw_text(buff, -1, x, y, TFT_LIGHTGREY, 2);
 
-		if (log_top_index + line == log_selection)
+		if (f == f_selected &&  log_top_index + line == log_selection)
 			screen_draw_rect(f->x, y, f->w, 16, TFT_WHITE);
 		y += 16;
 	}

@@ -33,7 +33,6 @@ void ft8_select(){
 
 void ft8_update(const char *msg){
   //#G121145  16 -16 1797 ~ #GDG5YPR #RIZ2FOS #SJN55
-  Serial.print("ft8_msg:");Serial.print(msg);
   char buff[100], *p;
 
   struct ft8_message *m = ft8_list + ft8_next;
@@ -174,7 +173,7 @@ void ft8_draw(field *f){
       	screen_draw_text(p+1, -1, x, f->y + (screen_text_height(2) * i), color, 2);
       	x += screen_text_width(p+1,2);
       	//Serial.print("|");Serial.print(p);
-				if(index == ft8_cursor)
+				if(index == ft8_cursor && f == f_selected)
       		screen_draw_rect(f->x+2, f->y + (screen_text_height(2) * i), f->w - 4, 16, TFT_WHITE);
     	}
     	//Serial.println("done");
