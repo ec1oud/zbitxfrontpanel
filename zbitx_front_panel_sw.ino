@@ -90,6 +90,37 @@ boolean in_tx(){
 	return false;
 }
 
+void set_bandwidth_strip(){
+	struct field *f_span = field_get("SPAN");
+	struct field *f_high = field_get("HIGH");
+	struct field *f_low  = field_get("LOW");
+	struct field *f_mode = field_get("MODE");
+	struct field *f_pitch = field_get("PITCH");
+
+	if (!f_span || !f_high || !f_low || !f_mode || !f_pitch)
+		return;
+
+	int span = 25000;
+	if (!strcmp(f_span->value, "10K"))
+		span = 10000;
+	else if (!strcmp(f_span->value, "6K"))
+		span = 6000;
+	else if (!strcmp(f_span->value, "2.5K"))
+		span = 2500;	
+
+	int high = (atoi(f_high->value) * 240)/span;
+	int low = (atoi(f_low->value) * 240)/span;
+	int pitch = (atoi(f_pitch->value) * 240)/span;
+ 
+	if (!strcmp(f_mode->value, "LSB") || !strcmp(f_mode->value, "CWR")){
+		high = -high;
+		low = -low;
+		pitch = -pitch;
+	}
+	waterfall_bandwidth(low, high, pitch);
+}
+
+
 void command_tokenize(char c){
  
   if (c == COMMAND_START){
@@ -106,6 +137,9 @@ void command_tokenize(char c){
      		field_set(cmd_label, cmd_value, false);
       else if (f->last_user_change + 1000 < now || f->type == FIELD_TEXT)
      		field_set(cmd_label, cmd_value, false);
+			if (!strcmp(cmd_label, "HIGH") || !strcmp(cmd_label, "LOW") || !strcmp(cmd_label, "PITCH")
+				|| !strcmp(cmd_label, "SPAN") || !strcmp(cmd_label, "MODE"))
+				set_bandwidth_strip();	
     }
     cmd_in_label = false;
     cmd_in_field = false;
@@ -325,10 +359,8 @@ void setup() {
 	attachInterrupt(ENC_A, on_enc, CHANGE);
 	attachInterrupt(ENC_B, on_enc, CHANGE);
 
-	field_set("9", "zBitx firmware v1.03\nWaiting for the zBitx to start...\n", false);
+	field_set("9", "zBitx firmware v1.04\nWaiting for the zBitx to start...\n", false);
 
-//	reset_usb_boot(1<<PICO_DEFAULT_LED_PIN,0); //invokes reset into bootloader mode
-	//get into flashing mode if the encoder switch is pressed
 	if (digitalRead(ENC_S) == LOW)
 		reset_usb_boot(0,0); //invokes reset into bootloader mode
 }
@@ -342,5 +374,4 @@ void loop() {
 
   measure_voltages();
   delay(1);
-	//Serial.printf("total: %d\n", total);
 }

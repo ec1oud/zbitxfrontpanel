@@ -48,6 +48,7 @@ void screen_draw_mono(const char *text, int count, int x_at, int y_at, uint16_t 
 void waterfall_update(uint8_t *bins);
 void waterfall_draw(struct field *f);
 void waterfall_init();
+void waterfall_bandwidth(int start, int stop, int center);
 
 /* struct field holds a value of radio controls like volume, frequency, etc. */
 
