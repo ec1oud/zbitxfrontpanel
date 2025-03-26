@@ -32,7 +32,7 @@ The procedure is as follows:
 #include "free_font.h"
 
 TFT_eSPI tft = TFT_eSPI();  // Invoke custom library
-static uint8_t waterfall[240*200]; //Very Arbitrary!
+//static uint8_t waterfall[240*200]; //Very Arbitrary!
 
 uint16_t font_width2[256];
 uint16_t font_width4[256];
@@ -59,7 +59,6 @@ void screen_init(){
   tft.setRotation(3);
   tft.setSwapBytes(true);
 
-  memset(waterfall, 0,  sizeof(waterfall));
 
   ///calibrate the screen or retreive the calibration from EEPROM
   uint16_t x, y;
@@ -98,6 +97,10 @@ void screen_fill_round_rect(int x, int y, int w, int h, int color){
 
 void screen_draw_round_rect(int x, int y, int w, int h, int color){
   tft.drawRoundRect(x, y, w, h, 4, color);
+}
+
+void   screen_draw_line(int x1, int y1, int x2, int y2, int color){
+	tft.drawLine(x1, y1, x2, y2, color);
 }
 
 void screen_draw_mono(const char *text, int count, int x_at, int y_at, uint16_t color){
@@ -149,6 +152,10 @@ void screen_text_extents(int font, uint16_t *extents){
     extents[i] = (uint16_t) pgm_read_byte(widthtable + i - 32);
 }
 
+void screen_bitblt(int x, int y, int w, int h, uint16_t *bmp){
+   tft.pushRect(x, y, w, h, bmp);
+}
+
 int16_t screen_text_width(char *text, uint8_t font){
   return tft.textWidth(text, font);
 }
@@ -165,82 +172,3 @@ bool screen_read(uint16_t *x, uint16_t *y){
   return tft.getTouch(x, y);  
 }
 
-uint16_t inline heat_map(int v){
-  uint8_t r, g, b;
-
-  v *= 4;
-  /*
-  if (v > 100)    //we limit ourselves to 100 db range
-    v = 100;
-  */
-  r =g = b = 0;
-  
-  if (v < 32){                  // r = 0, g= 0, increase blue
-    r = 0;
-    g = 0;
-    b = v; 
-  }
-  else if (v < 64){             // r = 0, increase g, blue is max
-    r = 0;
-    g = (v - 32);
-    b = 0x3f; 
-  }
-  else if (v < 96){             // r = 0, g= max, decrease b
-    r = 0;
-    g = 0x1f; 
-    b = (96-v); 
-  }
-  else if (v < 128){             // increase r, g = max, b = 0
-    r = (v-96);
-    g = 0x1f;
-    b = 0; 
-  }
-  else {                       // r = max, decrease g, b = 0
-    r = 0x1f;
-    g = (100-v);
-    b = 0; 
-  }
-  //0x3c00 = red, 0x1f = green, blue=0x1e00
-
-   // it took two days to figure this out! the bitfields are all garbled on the ili9488
-  return (g << 13) | (b << 8) | (r << 3) | (g >> 3);
-}
-
-void screen_waterfall_draw(int x, int y, int w, int h){
-
-  //the values are offset by 32, the space character
-  //there are 250 values to be spread out
-  int last_y = y + 48-waterfall[0];
-  for (int i = 1; i < w; i++){
-    int y_now = y + 48 - waterfall[i];
-    if(y_now < y)
-      y_now = y;
-    tft.drawLine(x+i, last_y, x+i, y_now, 0x00FFFF00);
-    last_y = y_now;
-  }
-
-  //the screen is bbbbbrrrrrrggggg
-  uint8_t *wf = waterfall;
-  double scale = 240.0/w;
-  uint16_t line[SCREEN_WIDTH];
-
-  // each waterfall line is stored as exactly 240 points wide
-  //this has to be stretced or compressed with scale variable 
-  for (int j = 48; j < h; j++){
-    for (int i = 0; i < w; i++){
-      uint16_t heat = heat_map((uint16_t)wf[(int16_t)(scale * i)]);
-      line[i] = heat;
-    }
-   tft.pushRect(x, y+j, w, 1, line);
-   wf += 240;
-  }
-}
-
-//always 240 values!
-void screen_waterfall_update(uint8_t *bins){
-  //scroll down the waterfall
-  int waterfall_length = sizeof(waterfall);
-  memmove(waterfall+240, waterfall, waterfall_length-240);
-  for (int i = 240; i > 0; i--)
-    waterfall[i-1] = *bins++;
-}
