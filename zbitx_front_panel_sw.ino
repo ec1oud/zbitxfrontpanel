@@ -122,7 +122,7 @@ void set_bandwidth_strip(){
 
 
 void command_tokenize(char c){
- 
+
   if (c == COMMAND_START){
     cmd_label[0] = 0;
     cmd_value[0] = 0;
