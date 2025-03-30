@@ -118,7 +118,7 @@ void field_set_panel(const char *mode){
   field_clear_all();
 	keyboard_hide(); //fwiw
   if (!strcmp(mode, "FT8")){
-    strcpy(list,"ESC/F1/F2/F3/F4/F5/TX_PITCH/AUTO/TX1ST/REPEAT/FT8_LIST/WF");
+    strcpy(list,"ESC/F1/F2/F3/F4/F5/TX_PITCH/AUTO/TX1ST/FT8_REPEAT/FT8_LIST/WF");
 	}
   else if (!strcmp(mode, "CW") || !strcmp(mode, "CWR")){
     strcpy(list, "ESC/F1/F2/F3/F4/F5/F6/F7/PITCH/WPM/TEXT/CONSOLE/WF");
@@ -592,13 +592,21 @@ void field_draw(struct field *f){
 			//smeter_draw(f);
 			return; // don't fall into the default background painting
     default:
+			{
+			const char *plabel = strchr(f->label, '_');
+			if (!plabel)
+				plabel = f->label;
+			else 
+				plabel++; //advance beyond the '_'	
+			
       if (!strlen(f->value))
-        screen_draw_text(f->label, -1, (f->x)+8, (f->y)+15, TFT_WHITE, ZBITX_FONT_NORMAL);
+        screen_draw_text(plabel, -1, (f->x)+8, (f->y)+15, TFT_WHITE, ZBITX_FONT_NORMAL);
       else 
-        screen_draw_text(f->label, -1, (f->x)+8, (f->y)+6, TFT_CYAN, ZBITX_FONT_NORMAL);
+        screen_draw_text(plabel, -1, (f->x)+8, (f->y)+6, TFT_CYAN, ZBITX_FONT_NORMAL);
 
       screen_draw_text(f->value, -1, (f->x)+8, f->y + 24, 
         TFT_WHITE, ZBITX_FONT_NORMAL);
+			}
       break;
 
   }
