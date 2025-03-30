@@ -255,33 +255,21 @@ struct field *field_select(const char *label){
 	if (!strcmp(f->label, "OPEN")){
 		f_selected = NULL;
 		field_post_to_radio(f);
-		logbook_init();// memset(logbook, 0, sizeof(logbook));
+		logbook_init();
 		struct field *f = dialog_box("Logbook", "LOGB/FINISH");
-		//field_set_panel("LOGB");
-		//field_select("LOGB");	
 		return NULL;
 	}
 	else if (!strcmp(f->label, "FINISH")){
 		f_selected = NULL;
 	}
 	else if (!strcmp(f_selected->label, "SAVE")){
-		logbook_init();// memset(logbook, 0, sizeof(logbook));
-		//strcpy(message_buffer, "qso ");
+		logbook_init();
 	}
 
   if (f_selected)
     f_selected->redraw = true; // redraw without the focus
   
-  if (f->type == FIELD_KEY){// && f_selected->type == FIELD_TEXT){
-    //char c = keyboard_read(f);
-    //last_key = c;
-		//if (c > 0){
-    //	 text_editor(c);
-		//	//hold updating to radio if the streaming is turned off
-		//	if (text_streaming == 0 && !strcmp(f_selected->label, "TEXT"))
-		//		f_selected->update_to_radio = false;*/
-		//	//it will read the key pressed
-		//}
+  if (f->type == FIELD_KEY){
 		text_input(f);
     return NULL;
   } 
@@ -617,6 +605,7 @@ void field_draw(struct field *f){
 }
 
 // some input to the field
+// in many cases (pressing a button), the focus may not be the field
 void field_input(uint8_t input){
 
   if (!f_selected)
@@ -624,14 +613,8 @@ void field_input(uint8_t input){
 
 	// handle some of the buttons locally rather than propage them 
 	// to the radio
-	/*
-  if (!strcmp(f_selected->label, "LOG")){
-		Serial.println("Opening the logbook");
-		field_set_panel("LOGB");
-		field_select("LOGB");	
-  } 
-	*/ 
 	if (f_selected->type == FIELD_FT8){
+		Serial.println("got ft8 input");
 		ft8_input(input);
   	f_selected->redraw = true; 
 		return;

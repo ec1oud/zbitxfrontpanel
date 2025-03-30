@@ -131,6 +131,7 @@ void command_tokenize(char c){
     cmd_in_field = true;
   }
   else if (c == COMMAND_END){
+		//Serial.printf("<<%s:%s", cmd_label, cmd_value);
 		if (strlen(cmd_label)){
 			struct field *f = field_get(cmd_label);
 			if (!f)  // some are not really fields but just updates, like QSO
@@ -143,6 +144,7 @@ void command_tokenize(char c){
     }
     cmd_in_label = false;
     cmd_in_field = false;
+		//Serial.println(">>");
   }
   else if (!cmd_in_field) // only:0 handle characters between { and }
     return;
@@ -177,7 +179,9 @@ void wire_text(char *text){
 	i2c_buff2[0] = l;
   strcpy(i2c_buff2+1,text);
 
+	Serial.print("[");
 	Wire1.write(i2c_buff2, l+1); //include the last zero
+	Serial.printf("sending:%s\n", i2c_buff2);
 	strcpy(last_sent, text);
 	req_count++;
 	total += l;
@@ -187,6 +191,14 @@ char buff_i2c_req[200];
 void on_request(){
   char c;
   //just update a single field, buttons first
+	if (message_buffer[0] != 0){
+    strcpy(buff_i2c_req, message_buffer);
+		wire_text(buff_i2c_req);
+		message_buffer[0] = 0;
+		return;
+	}
+
+	//check if any button has been pressed
   for (struct field *f = field_list; f->type != -1; f++){
     if (f->update_to_radio && f->type == FIELD_BUTTON){
 			f->update_to_radio = false;
@@ -205,13 +217,6 @@ void on_request(){
     }
 	}
 
-	if (message_buffer[0] != 0){
-    strcpy(buff_i2c_req, message_buffer);
-		wire_text(buff_i2c_req);
-		delay(10000);
-		message_buffer[0] = 0;
-		return;
-	}
   wire_text("NOTHING ");
 }
 
@@ -219,8 +224,9 @@ int dcount = 0;
 void on_receive(int len){
   uint8_t r;
   dcount += len;
-  while(len--)
+  while(len--){
     q_write(&q_incoming, (int32_t)Wire1.read());
+	}
 }
 
 #define AVG_N 10
