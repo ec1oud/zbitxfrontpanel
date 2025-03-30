@@ -239,14 +239,17 @@ void measure_voltages(){
   b = (500 * analogRead(A2))/278;
 
   vbatt = ((vbatt * AVG_N) + b)/(AVG_N + 1);
+
 	if (f > vfwd)
 		vfwd = f;
 	else
   	vfwd = ((vfwd * AVG_N) + f)/(AVG_N + 1);
+
 	if (r > vref)
 		vref = r;
 	else
   	vref = ((vref * AVG_N) + r)/(AVG_N + 1);
+
 	vswr = (10*(vfwd + vref))/(vfwd-vref);
 
 	// update only once in a while

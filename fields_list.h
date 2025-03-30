@@ -126,6 +126,7 @@ struct field main_list[] = {
   /* These fields are never visible */
   {FIELD_KEY, 20000, 20000, 0, 0,  TFT_BLACK, "VFOA", "14074000"},  
   {FIELD_KEY, 20000, 20000, 0, 0,  TFT_BLACK, "VFOB", "7050000"},      
+  {FIELD_KEY, 20000, 20000, 0, 0,  TFT_BLACK, "RIT_DELTA", "0", "-25000/25000/1"},      
 
 	{FIELD_STATIC, 24, 96, SCREEN_WIDTH-96,  100, TFT_BLACK, "QSODEL", "0", ""}, 	
 
