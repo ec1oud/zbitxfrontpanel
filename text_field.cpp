@@ -120,6 +120,8 @@ char keyboard_read(struct field *key){
 			f->redraw = 1;
 		text_streaming = 0;
 		key->redraw = 1;
+		//clear text
+		field_set("TEXT", "", true);		
 	}
   else if (!strcmp(key->label, "Sym")){
 		if (edit_state == EDIT_STATE_SYM)
