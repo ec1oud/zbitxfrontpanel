@@ -179,9 +179,7 @@ void wire_text(char *text){
 	i2c_buff2[0] = l;
   strcpy(i2c_buff2+1,text);
 
-	Serial.print("[");
 	Wire1.write(i2c_buff2, l+1); //include the last zero
-	Serial.printf("sending:%s\n", i2c_buff2);
 	strcpy(last_sent, text);
 	req_count++;
 	total += l;
