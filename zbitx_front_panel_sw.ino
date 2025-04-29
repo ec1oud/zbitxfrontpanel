@@ -10,6 +10,7 @@ The blink.ino should work (note that the pico w and pico have different gpios fo
 #define USE_DMA
 #include <TFT_eSPI.h>
 #include <Wire.h>
+//#include <SerialBT.h>
 #include "zbitx.h"
 extern "C" {
 #include "pico.h"
@@ -131,7 +132,7 @@ void command_tokenize(char c){
     cmd_in_field = true;
   }
   else if (c == COMMAND_END){
-		//Serial.printf("<<%s:%s", cmd_label, cmd_value);
+		Serial.printf("<<%s:%s", cmd_label, cmd_value);
 		if (strlen(cmd_label)){
 			struct field *f = field_get(cmd_label);
 			if (!f)  // some are not really fields but just updates, like QSO
@@ -144,7 +145,7 @@ void command_tokenize(char c){
     }
     cmd_in_label = false;
     cmd_in_field = false;
-		//Serial.println(">>");
+		Serial.println(">>");
   }
   else if (!cmd_in_field) // only:0 handle characters between { and }
     return;
@@ -337,6 +338,7 @@ struct field *ui_slice(){
 // the setup function runs once when you press reset or power the board
 void setup() {
   Serial.begin(115200);
+ 
 	/* while(!Serial)
 		delay(100); */
   q_init(&q_incoming);
