@@ -1,7 +1,7 @@
 #include <TFT_eSPI.h>
 #include "zbitx.h"
 
-static uint16_t waterfall[240*100]; //Very Arbitrary!
+static uint8_t waterfall[240*200]; //Very Arbitrary!
 static int bandwidth_stop, bandwidth_start, center_line;
 
 void waterfall_bandwidth(int start, int stop, int center){
@@ -89,13 +89,13 @@ void waterfall_draw(struct field *f){
     screen_draw_line(f->x+i, last_y, f->x+i, y_now, 0x00FFFF00);
     last_y = y_now;
   }
+  return;
 
   //the screen is bbbbbrrrrrrggggg
-  uint16_t *wf = waterfall;
+  uint8_t *wf = waterfall;
   double scale = 240.0/f->w;
   uint16_t line[SCREEN_WIDTH];
 
-/*
   // each waterfall line is stored as exactly 240 points wide
   //this has to be stretced or compressed with scale variable 
   for (int j = 48; j < f->h; j++){
@@ -103,19 +103,16 @@ void waterfall_draw(struct field *f){
       uint16_t heat = heat_map((uint16_t)wf[(int16_t)(scale * i)]);
       line[i] = heat;
     }
-   //screen_bitblt(f->x, f->y+j, f->w, 1, line);
+   screen_bitblt(f->x, f->y+j, f->w, 1, line);
    wf += 240;
   }
-  */
-  //screen_bitblt(f->x, f->y + 48, f->w, 100, waterfall);
 }
 
 //always 240 values!
 void waterfall_update(uint8_t *bins){
   //scroll down the waterfall
-  double scale = 0.5;
   int waterfall_length = sizeof(waterfall);
-  memmove(waterfall+240, waterfall, waterfall_length-480); //each pixel is two bytes
+  memmove(waterfall+240, waterfall, waterfall_length-240);
   for (int i = 240; i > 0; i--)
-    waterfall[i-1] = heat_map(scale *(uint16_t)*bins++);
+    waterfall[i-1] = *bins++;
 }
