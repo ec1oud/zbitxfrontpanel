@@ -232,6 +232,14 @@ struct field *field_select(const char *label){
     return NULL;
   }
 
+	if (!strcmp(f->label, "WF")){
+		if (!strcmp(f->value, "ON"))
+			strcpy(f->value, "OFF");
+		else
+			strcpy(f->value, "ON");
+		f->update_to_radio = true;
+	}
+
 	//some fields should not get focus anyway 
 	if (!strcmp(f->label, "WF") || !strcmp(f->label, "CONSOLE"))
 		return NULL;

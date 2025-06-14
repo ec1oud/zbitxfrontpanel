@@ -120,7 +120,7 @@ struct field main_list[] = {
   {FIELD_BUTTON, 24, 272, 96, 48, TFT_BLUE, "FINISH", ""},
   
   //waterfall can get hidden by keyboard et al (or even removed by FT8 etc
-  {FIELD_WATERFALL, 0, 96, 240, 176,  TFT_BLACK, "WF", ""}, //WARNING: Keep the height of the waterfall to be a multiple of 48 (see waterfal_update() code)
+  {FIELD_WATERFALL, 0, 96, 240, 176,  TFT_BLACK, "WF", "ON"}, //WARNING: Keep the height of the waterfall to be a multiple of 48 (see waterfal_update() code)
 
 
   /* These fields are never visible */

@@ -1,7 +1,7 @@
 #include <TFT_eSPI.h>
 #include "zbitx.h"
 
-static uint8_t waterfall[240*200]; //Very Arbitrary!
+static uint8_t waterfall[240*100]; //Very Arbitrary!
 static int bandwidth_stop, bandwidth_start, center_line;
 
 void waterfall_bandwidth(int start, int stop, int center){
@@ -63,7 +63,11 @@ uint16_t inline heat_map(int v){
   return (g << 13) | (b << 8) | (r << 3) | (g >> 3);
 }
 
+uint16_t wf_color = 0x0000;
 void waterfall_draw(struct field *f){
+
+	if (!strcmp(f->value, "OFF"))
+		return;
 
   screen_fill_rect(f->x, f->y, f->w, 48, TFT_BLACK);
 	// clip the bandwidth strip
@@ -89,8 +93,9 @@ void waterfall_draw(struct field *f){
     screen_draw_line(f->x+i, last_y, f->x+i, y_now, 0x00FFFF00);
     last_y = y_now;
   }
-  return;
 
+	//screen_fill_rect(f->x, f->y+48, f->w, f->y - 48, wf_color);
+	wf_color += 1;
   //the screen is bbbbbrrrrrrggggg
   uint8_t *wf = waterfall;
   double scale = 240.0/f->w;

@@ -10,7 +10,6 @@ The blink.ino should work (note that the pico w and pico have different gpios fo
 #define USE_DMA
 #include <TFT_eSPI.h>
 #include <Wire.h>
-//#include <SerialBT.h>
 #include "zbitx.h"
 extern "C" {
 #include "pico.h"
@@ -132,7 +131,7 @@ void command_tokenize(char c){
     cmd_in_field = true;
   }
   else if (c == COMMAND_END){
-		Serial.printf("<<%s:%s", cmd_label, cmd_value);
+		//Serial.printf("<<%s:%s", cmd_label, cmd_value);
 		if (strlen(cmd_label)){
 			struct field *f = field_get(cmd_label);
 			if (!f)  // some are not really fields but just updates, like QSO
@@ -145,7 +144,7 @@ void command_tokenize(char c){
     }
     cmd_in_label = false;
     cmd_in_field = false;
-		Serial.println(">>");
+		//Serial.println(">>");
   }
   else if (!cmd_in_field) // only:0 handle characters between { and }
     return;
@@ -258,6 +257,7 @@ void measure_voltages(){
 	if (ticks % 40)
 		return;
 
+	/*
   sprintf(buff, "%d", vbatt);
   field_set("VBATT", buff, true);
 
@@ -266,7 +266,7 @@ void measure_voltages(){
 
   sprintf(buff, "%d", vswr);
   field_set("REF", buff, true);
-
+	*/
   struct field *x = field_get("POWER");
   //Serial.printf("power update is %d\n", x->update_to_radio);
 }
@@ -368,10 +368,25 @@ void setup() {
 	attachInterrupt(ENC_A, on_enc, CHANGE);
 	attachInterrupt(ENC_B, on_enc, CHANGE);
 
-	field_set("9", "zBitx firmware v1.06\nWaiting for the zBitx to start...\n", false);
+	field_set("9", "zBitx firmware v1.07\nWaiting for the zBitx to start...\n", false);
 
 	if (digitalRead(ENC_S) == LOW)
 		reset_usb_boot(0,0); //invokes reset into bootloader mode
+}
+
+void simulate_waterfall(){
+	uint8_t noise[240];
+
+	for(int i = 0; i < 240; i++){
+		noise[i] = analogRead(A0)/8;
+	}
+	waterfall_update(noise);
+	struct field *f = field_get("WF");
+	if (f){
+		f->redraw = true;	
+		waterfall_draw(f);
+		Serial.println("waterfall drawn");
+	}
 }
 
 int count = 0;
@@ -379,6 +394,9 @@ int count = 0;
 void loop() {
 	now = millis();
 
+  count++;
+//  if (count % 400)
+//    simulate_waterfall();
   ui_slice();
 
   measure_voltages();
