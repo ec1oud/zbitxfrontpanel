@@ -338,7 +338,6 @@ struct field *ui_slice(){
 // the setup function runs once when you press reset or power the board
 void setup() {
   Serial.begin(115200);
- 
 	/* while(!Serial)
 		delay(100); */
   q_init(&q_incoming);

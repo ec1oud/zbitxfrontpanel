@@ -59,6 +59,7 @@ void screen_init(){
   tft.setRotation(3);
   tft.setSwapBytes(true);
 
+	Serial.printf("tft dma is %d\n", tft.DMA_Enabled);
 
   ///calibrate the screen or retreive the calibration from EEPROM
   uint16_t x, y;
@@ -101,6 +102,10 @@ void screen_draw_round_rect(int x, int y, int w, int h, int color){
 
 void   screen_draw_line(int x1, int y1, int x2, int y2, int color){
 	tft.drawLine(x1, y1, x2, y2, color);
+}
+
+void screen_draw_pixel(int x1, int y1, int color){
+  tft.drawPixel(x1, y1, color);
 }
 
 void screen_draw_mono(const char *text, int count, int x_at, int y_at, uint16_t color){

@@ -65,11 +65,16 @@ uint16_t inline heat_map(int v){
 
 uint16_t wf_color = 0x0000;
 void waterfall_draw(struct field *f){
+  int debug = atoi(field_get("DRIVE")->value);
+//	if (!strcmp(f->value, "OFF"))
+//		return;
+  if (debug < 10)
+    return;
 
-	if (!strcmp(f->value, "OFF"))
-		return;
+	screen_fill_rect(f->x, f->y, f->w, 48, TFT_BLACK);
+	//if(debug < 15)
+	//	return;
 
-  screen_fill_rect(f->x, f->y, f->w, 48, TFT_BLACK);
 	// clip the bandwidth strip
 	int bx = f->x + f->w/2 + bandwidth_start;
 	if (bx < f->x)
@@ -77,7 +82,9 @@ void waterfall_draw(struct field *f){
 	int bw = bandwidth_stop - bandwidth_start;
 	if (bx + bw > f->x + f->w)
 		bw = f->x + f->w - bx; 
-	screen_fill_rect(bx, f->y, bw, 48, TFT_BLUE);
+
+  if (debug < 20)
+	  screen_fill_rect(bx, f->y, bw, 48, TFT_BLUE);
 
 	int pitch = center_line + f->x + f->w/2;
 	if (f->x < pitch && pitch < f->x + f->w)
@@ -88,11 +95,15 @@ void waterfall_draw(struct field *f){
   int last_y = f->y + 48-waterfall[0];
   for (int i = 1; i <f->w; i++){
     int y_now = f->y + 48 - waterfall[i];
+		int y_last = f->y +48 - waterfall[i+f->w];
     if(y_now < f->y)
       y_now = f->y;
     screen_draw_line(f->x+i, last_y, f->x+i, y_now, 0x00FFFF00);
     last_y = y_now;
   }
+
+//  if (debug < 30)
+    return;
 
 	//screen_fill_rect(f->x, f->y+48, f->w, f->y - 48, wf_color);
 	wf_color += 1;
