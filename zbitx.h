@@ -56,7 +56,7 @@ bool screen_read(uint16_t *x, uint16_t *y);
 void screen_text_extents(int font, uint16_t *extents); //extents upto 127, below 32 are randomf
 void screen_draw_mono(const char *text, int count, int x_at, int y_at, uint16_t color);
 void screen_draw_pixel(int x1, int y1, int color);
-void waterfall_update(uint8_t *bins);
+void waterfall_update(struct field *wf, uint8_t *bins);
 void waterfall_draw(struct field *f);
 void waterfall_init();
 void waterfall_bandwidth(int start, int stop, int center);

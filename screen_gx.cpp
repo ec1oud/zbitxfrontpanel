@@ -158,7 +158,7 @@ void screen_text_extents(int font, uint16_t *extents){
 }
 
 void screen_bitblt(int x, int y, int w, int h, uint16_t *bmp){
-   tft.pushRect(x, y, w, h, bmp);
+   tft.pushImage(x, y, w, h, bmp);
 }
 
 int16_t screen_text_width(char *text, uint8_t font){

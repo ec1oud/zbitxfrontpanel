@@ -189,7 +189,7 @@ void field_set(const char *label, const char *value, bool update_to_radio){
       spectrum[i] = v;
     }
     //always 250 points
-    waterfall_update(spectrum);
+    waterfall_update(f, spectrum);
   }
   //else if (strlen(value) < FIELD_TEXT_MAX_LENGTH - 1){
 	else {

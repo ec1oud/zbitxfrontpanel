@@ -379,8 +379,8 @@ void simulate_waterfall(){
 	for(int i = 0; i < 240; i++){
 		noise[i] = analogRead(A0)/8;
 	}
-	waterfall_update(noise);
 	struct field *f = field_get("WF");
+	waterfall_update(f, noise);
 	if (f){
 		f->redraw = true;	
 		waterfall_draw(f);
