@@ -160,8 +160,7 @@ struct field main_list[] = {
   {FIELD_BUTTON, 408, 48, 48, 48,  TFT_BLACK, "80M", "1"},
   {FIELD_SELECTION, 24, 96, 48, 48,  TFT_BLACK, "AGC", "MED", "OFF/SLOW/MED/FAST"},
   {FIELD_SELECTION, 72, 96, 48, 48,  TFT_BLACK, "VFO", "A", "A/B"},
-  {FIELD_TOGGLE, 120, 96, 48, 48,  TFT_BLACK, "SPLIT", "OFF", "ON/OFF"},  
-
+  {FIELD_SELECTION, 120, 96, 48, 48,  TFT_BLACK, "SPLIT", "OFF", "ON/OFF"},  
 	/* settings */
 
   {FIELD_STATIC, 26,48, 96, 0, TFT_BLACK, "MY CALL", "MY CALL:", "0/10"},

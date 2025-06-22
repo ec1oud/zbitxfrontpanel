@@ -96,6 +96,7 @@ void set_bandwidth_strip(){
 	struct field *f_low  = field_get("LOW");
 	struct field *f_mode = field_get("MODE");
 	struct field *f_pitch = field_get("PITCH");
+	struct field *f_tx_pitch = field_get("TX_PITCH");
 
 	if (!f_span || !f_high || !f_low || !f_mode || !f_pitch)
 		return;
@@ -111,13 +112,23 @@ void set_bandwidth_strip(){
 	int high = (atoi(f_high->value) * 240)/span;
 	int low = (atoi(f_low->value) * 240)/span;
 	int pitch = (atoi(f_pitch->value) * 240)/span;
- 
+	int tx_pitch = (atoi(f_tx_pitch->value) * 240)/span;
+
+	Serial.printf("PITCH %d pitch %d\n", atoi(f_pitch->value), pitch);
+/*	if (!strcmp(f_mode->value, "CW"))
+		
+	else if(!strcmp(f_mode->value, "CWR"))
+		
+	}
+*/
 	if (!strcmp(f_mode->value, "LSB") || !strcmp(f_mode->value, "CWR")){
 		high = -high;
 		low = -low;
 		pitch = -pitch;
+		tx_pitch = -tx_pitch;
 	}
-	waterfall_bandwidth(low, high, pitch);
+	
+	waterfall_bandwidth(low, high, pitch, tx_pitch);
 }
 
 

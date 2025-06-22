@@ -183,10 +183,11 @@ void field_set(const char *label, const char *value, bool update_to_radio){
     int count = strlen(value);
     //we take 240 points on the waterfall 
     //and zzom it in/out
-    double scale = (240.0)/count;
-    for (int i = 0; i < f->w; i++){
-      int v = value[(int)(scale * i)]-32;
-      spectrum[i] = v;
+    double scale = count/240.0;
+    for (int d = 0; d < f->w; d++){
+			int i = (scale * d);
+      int v = value[i]-32;
+      spectrum[d] = v;
     }
     //always 250 points
     waterfall_update(f, spectrum);
@@ -380,7 +381,12 @@ void freq_draw(){
   struct field *vfo_a = field_get("VFOA");
   struct field *vfo_b = field_get("VFOB");
   struct field *rit_delta = field_get("RIT_DELTA");
-  
+ 
+
+	if (!vfo_a || !vfo_b){
+		Serial.println("vfo not showing");
+	}
+
   char buff[20];
   char temp_str[20];
 

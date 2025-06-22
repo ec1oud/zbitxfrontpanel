@@ -16,7 +16,7 @@ The procedure is as follows:
     folder, press Ctrl+K to open the folder.
 
 3.  Close the Arduino IDE and open it again so the added file is recognised.
-Tage you are using.
+Tage you are using.:e
 
 
 To Do:

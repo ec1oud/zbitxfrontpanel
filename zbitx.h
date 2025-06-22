@@ -59,7 +59,7 @@ void screen_draw_pixel(int x1, int y1, int color);
 void waterfall_update(struct field *wf, uint8_t *bins);
 void waterfall_draw(struct field *f);
 void waterfall_init();
-void waterfall_bandwidth(int start, int stop, int center);
+void waterfall_bandwidth(int start, int stop, int center, int tx_pitch);
 
 /* struct field holds a value of radio controls like volume, frequency, etc. */
 
