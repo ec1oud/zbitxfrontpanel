@@ -161,12 +161,20 @@ void field_set(const char *label, const char *value, bool update_to_radio){
   if (update_to_radio)
 		field_post_to_radio(f);
 
+	if (!strcmp(f->label, "IN_TX")){
+		if (strcmp(f->value, value)){
+			struct field *f = field_get("FREQ");
+			f->redraw = true;
+		}
+	}
+	
+
    //these are messages of FT8
   if(!strcmp(f->label, "FT8_LIST")){
     ft8_update(value);
     f->redraw = true;
   }
-
+	
   //cw decoded text
   else if (!strcmp(f->label, "CONSOLE")){
     console_update(f, label, value);  
@@ -398,34 +406,25 @@ void freq_draw(){
 
   if (!strcmp(rit->value, "ON")){
     if (!in_tx()){
-      sprintf(buff, "TX:%s", freq_with_separators(f->value));
-      screen_draw_text(buff,  -1, f->x+5 , f->y+1,  TFT_BLACK, ZBITX_FONT_LARGE);
       sprintf(temp_str, "%d", (atoi(f->value) + atoi(rit_delta->value)));
-      sprintf(buff, "RX:%s", freq_with_separators(temp_str));
+      sprintf(buff, "R:%s", freq_with_separators(temp_str));
       screen_draw_text(buff, -1, f->x+5 , f->y+19, TFT_CYAN, ZBITX_FONT_LARGE);
     }
     else {
-      sprintf(buff, "TX:%s", freq_with_separators(f->value));
-      screen_draw_text(buff, -1, f->x+5 , f->y+19, TFT_BLACK, ZBITX_FONT_LARGE);
-      sprintf(temp_str, "%d", (atoi(f->value) + atoi(rit_delta->value)));
-      sprintf(buff, "RX:%s", freq_with_separators(temp_str));
-      screen_draw_text(buff, -1, f->x+5 , f->y+1 , TFT_CYAN, ZBITX_FONT_LARGE);
+      sprintf(buff, "T:%s", freq_with_separators(f->value));
+      screen_draw_text(buff, -1, f->x+5 , f->y+19, TFT_CYAN, ZBITX_FONT_LARGE);
     }
   }
   else if (!strcmp(split->value, "ON")){
     if (!in_tx()){
-      strcpy(temp_str, vfo_b->value);
-      sprintf(buff, "TX:%s", freq_with_separators(temp_str));
-      screen_draw_text(buff,  -1,f->x+5 , f->y+1, TFT_BLACK, ZBITX_FONT_LARGE);
-      sprintf(buff, "RX:%s", freq_with_separators(f->value));
+      strcpy(temp_str, vfo_a->value);
+      sprintf(buff, "R:%s", freq_with_separators(temp_str));
       screen_draw_text(buff, -1, f->x+5 , f->y+19, TFT_CYAN, ZBITX_FONT_LARGE);
     }
     else {
       strcpy(temp_str, vfo_b->value);
-      sprintf(buff, "TX:%s", freq_with_separators(temp_str));
-      screen_draw_text(buff, -1, f->x+5 , f->y+19 , TFT_BLACK, ZBITX_FONT_LARGE);
-      sprintf(buff, "RX:%d", atoi(f->value) + atoi(rit_delta->value));
-      screen_draw_text(buff,  -1, f->x+5 , f->y+1, TFT_CYAN, ZBITX_FONT_LARGE);
+      sprintf(buff, "T:%s", freq_with_separators(temp_str));
+      screen_draw_text(buff, -1, f->x+5 , f->y+19, TFT_CYAN, ZBITX_FONT_LARGE);
     }
   }
   else if (!strcmp(vfo->value, "A")){

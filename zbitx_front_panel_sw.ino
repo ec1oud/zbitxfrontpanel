@@ -87,7 +87,13 @@ void command_init(){
 }
 
 boolean in_tx(){
-	return false;
+	struct field *f = field_get("IN_TX");
+	if (!f)
+		return false;
+	if (!strcmp(f->value, "0"))
+		return false;
+	else
+		return true;
 }
 
 void set_bandwidth_strip(){
@@ -114,7 +120,7 @@ void set_bandwidth_strip(){
 	int pitch = (atoi(f_pitch->value) * 240)/span;
 	int tx_pitch = (atoi(f_tx_pitch->value) * 240)/span;
 
-	Serial.printf("PITCH %d pitch %d\n", atoi(f_pitch->value), pitch);
+	//Serial.printf("PITCH %d pitch %d\n", atoi(f_pitch->value), pitch);
 /*	if (!strcmp(f_mode->value, "CW"))
 		
 	else if(!strcmp(f_mode->value, "CWR"))
@@ -226,7 +232,9 @@ void on_request(){
     }
 	}
 
-  wire_text("NOTHING ");
+	char buff[50];
+	sprintf(buff, "VBATT %d\nPOWER %d\nREF %d\n", vbatt, vfwd, vswr);
+  wire_text(buff);
 }
 
 int dcount = 0;
@@ -238,18 +246,23 @@ void on_receive(int len){
 	}
 }
 
-#define AVG_N 10
+#define AVG_N 10 
 
 void measure_voltages(){
   char buff[30];
   int f, r, b;
-	static int ticks = 0;
+
+	static unsigned long next_update = 0;
+	unsigned long now = millis();
+
+	if (now < next_update)
+		return;
 
   f = (56 * analogRead(A0))/460;
   r = (56 *analogRead(A1))/460;
   b = (500 * analogRead(A2))/278;
 
-  vbatt = ((vbatt * AVG_N) + b)/(AVG_N + 1);
+	vbatt = b;
 
 	if (f > vfwd)
 		vfwd = f;
@@ -264,11 +277,7 @@ void measure_voltages(){
 	vswr = (10*(vfwd + vref))/(vfwd-vref);
 
 	// update only once in a while
-	ticks++;
-	if (ticks % 40)
-		return;
-
-	/*
+/*	
   sprintf(buff, "%d", vbatt);
   field_set("VBATT", buff, true);
 
@@ -277,9 +286,11 @@ void measure_voltages(){
 
   sprintf(buff, "%d", vswr);
   field_set("REF", buff, true);
-	*/
+	
   struct field *x = field_get("POWER");
-  //Serial.printf("power update is %d\n", x->update_to_radio);
+	*/
+  //Serial.printf("%d %d\n", vfwd, vswr);
+	next_update = now + 50;
 }
 
 /* it returns the field that was last selected */
@@ -378,7 +389,7 @@ void setup() {
 	attachInterrupt(ENC_A, on_enc, CHANGE);
 	attachInterrupt(ENC_B, on_enc, CHANGE);
 
-	field_set("9", "zBitx firmware v1.07\nWaiting for the zBitx to start...\n", false);
+	field_set("9", "zBitx firmware v1.07b\nWaiting for the zBitx to start...\n", false);
 
 	if (digitalRead(ENC_S) == LOW)
 		reset_usb_boot(0,0); //invokes reset into bootloader mode
