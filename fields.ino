@@ -722,13 +722,39 @@ void field_input(uint8_t input){
       step = 10;
     else
       step = 1;  
-      
-    v = (v/step)*step;
-    if (v + step <= max && input == ZBITX_KEY_UP)
-      v += step;
-    else if (v - step >= min && input == ZBITX_KEY_DOWN)
-      v -=  step;    
-    sprintf(f_selected->value, "%d", v);      
+    
+		struct field *f_rit = field_get("RIT");
+		if (!f_rit){
+			Serial.println("RIT field is missing");
+			return;
+		}
+
+		//on rit, we only increase the rit delta
+		if (!strcmp(f_rit->value, "ON")){
+			struct field *f_rit_delta = field_get("RIT_DELTA");
+			int rit_delta = atoi(f_rit_delta->value);
+			Serial.printf("rit_delta: %d ", rit_delta);
+			if (-25000 < rit_delta - step && rit_delta + step < 25000){
+				if (input == ZBITX_KEY_UP)
+					rit_delta += step;
+				else if (input == ZBITX_KEY_DOWN)
+					rit_delta -= step;    
+			}
+			else //reset the rit to zero 
+				rit_delta = 0;
+
+			field_post_to_radio(f_rit_delta);
+			sprintf(f_rit_delta->value, "%d", rit_delta);
+			Serial.printf("> %d\n", rit_delta);
+		}
+		else { //normal case
+			v = (v/step)*step;
+			if (v + step <= max && input == ZBITX_KEY_UP)
+				v += step;
+			else if (v - step >= min && input == ZBITX_KEY_DOWN)
+				v -=  step;    
+    sprintf(f_selected->value, "%d", v);
+		}
   }
 	else if (f_selected->type == FIELD_LOGBOOK)
 		logbook_input(input);

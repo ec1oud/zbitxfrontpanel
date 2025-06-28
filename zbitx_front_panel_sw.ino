@@ -233,7 +233,8 @@ void on_request(){
 	}
 
 	char buff[50];
-	sprintf(buff, "VBATT %d\nPOWER %d\nREF %d\n", vbatt, vfwd, vswr);
+	sprintf(buff, "vbatt %d\npower %d\nvswr %d\n", vbatt, vfwd, vswr);
+	//Serial.printf(buff);
   wire_text(buff);
 }
 

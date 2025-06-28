@@ -92,6 +92,8 @@ void waterfall_line(int x, int y1, int y2, int color){
 }
 
 void waterfall_draw(struct field *f){
+	if (!strcmp(f->value, "OFF"))
+			return;
 	screen_bitblt(f->x, f->y, f->w, 144, waterfall);
 }
 
