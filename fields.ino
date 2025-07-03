@@ -114,7 +114,6 @@ struct field *dialog_box(const char *title, char const *fields_list){
 void field_set_panel(const char *mode){
   char list[100];
  
-	Serial.println(mode); 
   field_clear_all();
 	keyboard_hide(); //fwiw
   if (!strcmp(mode, "FT8")){
@@ -158,17 +157,19 @@ void field_set(const char *label, const char *value, bool update_to_radio){
   if (!f)
     return;
 
+	if (!strcmp(f->label, "VFO"))
+		Serial.printf("vfo update_to_radio %d on %d\n", update_to_radio, __LINE__);
   if (update_to_radio)
 		field_post_to_radio(f);
 
-	if (!strcmp(f->label, "IN_TX")){
+	if (!strcmp(f->label, "IN_TX") || !strcmp(f->label, "RIT") 
+		|| !strcmp(f->label, "VFO")){
 		if (strcmp(f->value, value)){
 			struct field *f = field_get("FREQ");
 			f->redraw = true;
 		}
 	}
 	
-
    //these are messages of FT8
   if(!strcmp(f->label, "FT8_LIST")){
     ft8_update(value);
@@ -246,6 +247,8 @@ struct field *field_select(const char *label){
 			strcpy(f->value, "OFF");
 		else
 			strcpy(f->value, "ON");
+		if (!strcmp(f->label, "VFO"))
+			Serial.printf("vfo update_to_radio %d\n", __LINE__);
 		f->update_to_radio = true;
 	}
 
@@ -283,6 +286,15 @@ struct field *field_select(const char *label){
 		logbook_init();
 	}
 
+/*
+	if (!strcmp(f_selected->label, "VFO")){
+		if (!strcmp(f_selected->value, "A"))
+			field_set("FREQ", field_get("VFOA")->value, true);
+		else if (!strcmp(f_selected->value, "B"))
+			field_set("FREQ", field_get("VFOB")->value, true);
+	}
+	*/
+
   if (f_selected)
     f_selected->redraw = true; // redraw without the focus
   
@@ -295,7 +307,9 @@ struct field *field_select(const char *label){
 	if (f->type != FIELD_BUTTON && f->type != FIELD_KEY){
   	f_selected = f;
   	f->redraw = true;
-	}	
+	}
+	else
+		f_selected = NULL;
 
   //if a selection field is selected, move to the next selection
   if(f->type == FIELD_SELECTION){
@@ -399,23 +413,12 @@ void freq_draw(){
   char temp_str[20];
 
   //update the vfos
-  if (vfo->value[0] == 'A')
+  /*if (vfo->value[0] == 'A')
       strcpy(vfo_a->value, f->value);
   else
       strcpy(vfo_b->value, f->value);
-
-  if (!strcmp(rit->value, "ON")){
-    if (!in_tx()){
-      sprintf(temp_str, "%d", (atoi(f->value) + atoi(rit_delta->value)));
-      sprintf(buff, "R:%s", freq_with_separators(temp_str));
-      screen_draw_text(buff, -1, f->x+5 , f->y+19, TFT_CYAN, ZBITX_FONT_LARGE);
-    }
-    else {
-      sprintf(buff, "T:%s", freq_with_separators(f->value));
-      screen_draw_text(buff, -1, f->x+5 , f->y+19, TFT_CYAN, ZBITX_FONT_LARGE);
-    }
-  }
-  else if (!strcmp(split->value, "ON")){
+	*/
+		if (!strcmp(split->value, "ON")){
     if (!in_tx()){
       strcpy(temp_str, vfo_a->value);
       sprintf(buff, "R:%s", freq_with_separators(temp_str));
@@ -424,6 +427,17 @@ void freq_draw(){
     else {
       strcpy(temp_str, vfo_b->value);
       sprintf(buff, "T:%s", freq_with_separators(temp_str));
+      screen_draw_text(buff, -1, f->x+5 , f->y+19, TFT_CYAN, ZBITX_FONT_LARGE);
+    }
+  }
+  else if (!strcmp(rit->value, "ON")){
+    if (!in_tx()){
+      sprintf(temp_str, "%d", (atoi(f->value) + atoi(rit_delta->value)));
+      sprintf(buff, "R:%s", freq_with_separators(temp_str));
+      screen_draw_text(buff, -1, f->x+5 , f->y+19, TFT_CYAN, ZBITX_FONT_LARGE);
+    }
+    else {
+      sprintf(buff, "T:%s", freq_with_separators(f->value));
       screen_draw_text(buff, -1, f->x+5 , f->y+19, TFT_CYAN, ZBITX_FONT_LARGE);
     }
   }

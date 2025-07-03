@@ -148,7 +148,8 @@ void command_tokenize(char c){
     cmd_in_field = true;
   }
   else if (c == COMMAND_END){
-		//Serial.printf("<<%s:%s", cmd_label, cmd_value);
+		if (!strcmp(cmd_label, "VFO"))
+			Serial.printf("<<%s:%s>>\n", cmd_label, cmd_value);
 		if (strlen(cmd_label)){
 			struct field *f = field_get(cmd_label);
 			if (!f)  // some are not really fields but just updates, like QSO
@@ -209,6 +210,7 @@ void on_request(){
 	if (message_buffer[0] != 0){
     strcpy(buff_i2c_req, message_buffer);
 		wire_text(buff_i2c_req);
+		Serial.println(buff_i2c_req);
 		message_buffer[0] = 0;
 		return;
 	}
@@ -218,6 +220,7 @@ void on_request(){
     if (f->update_to_radio && f->type == FIELD_BUTTON){
 			f->update_to_radio = false;
       sprintf(buff_i2c_req, "%s %s", f->label, f->value);
+		Serial.print("btn ");Serial.println(buff_i2c_req);
 			wire_text(buff_i2c_req);
       return;
     }
@@ -228,6 +231,8 @@ void on_request(){
 			f->update_to_radio = false;
       sprintf(buff_i2c_req, "%s %s", f->label, f->value);
 			wire_text(buff_i2c_req);
+			Serial.print("others ");
+		Serial.println(buff_i2c_req);
       return;
     }
 	}
