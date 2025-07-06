@@ -248,6 +248,7 @@ void on_receive(int len){
 void measure_voltages(){
   char buff[30];
   int f, r, b;
+  static int ticks = 0;
 
 	static unsigned long next_update = 0;
 	unsigned long now = millis();
@@ -274,6 +275,18 @@ void measure_voltages(){
 	vswr = (10*(vfwd + vref))/(vfwd-vref);
 
 	// update only once in a while
+	ticks++;
+	if (!(ticks % 40)) {
+		sprintf(buff, "%d", vbatt);
+		field_set("VBATT", buff, true);
+
+		sprintf(buff, "%d", vfwd);
+		field_set("POWER", buff, true);
+
+		sprintf(buff, "%d", vswr);
+		field_set("REF", buff, true);
+	}
+
 	next_update = now + 50;
 }
 
