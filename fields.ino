@@ -142,13 +142,12 @@ void field_set(const char *label, const char *value, bool update_to_radio){
   struct field *f;
 
   //translate a few fields 
-  if (!strcmp(label, "9") || !strcmp(label, "10"))
+  if (!strcmp(label, "9") || !strcmp(label, "10") || !strcmp(label, "5"))
     f = field_get("CONSOLE");
   else if (!strcmp(label, "6") || !strcmp(label, "7"))
     f = field_get("FT8_LIST");
 	else if (!strcmp(label, "QSO")){
 		f = field_get("LOGB");
-		//Serial.printf("adding to logbook : %s\n", value);
 		logbook_update(value);
 	}
   else 
@@ -182,7 +181,7 @@ void field_set(const char *label, const char *value, bool update_to_radio){
   else if (!strcmp(f->label, "WF")){
     uint8_t spectrum[250];
     if (f->w > sizeof(spectrum)){
-      Serial.println("waterfall is too large");
+      Serial.println("#waterfall is too large");
       return;
     }
     //scale the values to fit the width
@@ -211,7 +210,7 @@ void field_set(const char *label, const char *value, bool update_to_radio){
 void field_show(const char *label, bool turn_on){
   struct field *f = field_get(label);
   if(!f){
-      Serial.print(label);Serial.println(" field not found");
+      Serial.printf("#%s field not found", label);
       return;
   }
   if (turn_on)
@@ -224,7 +223,6 @@ void field_show(const char *label, bool turn_on){
 struct field *field_at(uint16_t x, uint16_t y){
   for (struct field *f = field_list; f->type != -1; f++)
       if (f->x < x && x  < f->x-2 + f->w && f->y < y && y < f->y + f->h -2 && f->is_visible){
-        //Serial.print(x);Serial.print(",");Serial.println(y);
         return f; 
       }
   return NULL;    
@@ -325,7 +323,6 @@ struct field *field_select(const char *label){
         prev = p;
       p = strtok(NULL, "/");
     }
-    //Serial.print("found ");Serial.println(p); 
     //set to the first option
     if (p == NULL){
       if (first)
@@ -496,11 +493,10 @@ void smeter_draw(struct field *f){
 
 	struct field *f_tx = field_get("IN_TX");
 	if (!f_tx){
-		Serial.println("IN_TX field is missing");
+		Serial.println("#IN_TX field is missing");
 		return;
 	}
 	int in_tx = atoi(f_tx->value);
-	//Serial.printf("IN_TX is %d\n", in_tx);
 	 if (in_tx){
 		sprintf(temp_str, "%d W            SWR %d.%d", vfwd/10, vswr/10, vswr%10); 
 		screen_draw_text(temp_str, -1, f->x + 3, f->y + 1, TFT_WHITE, 2);
@@ -727,7 +723,7 @@ void field_input(uint8_t input){
     
 		struct field *f_rit = field_get("RIT");
 		if (!f_rit){
-			Serial.println("RIT field is missing");
+			Serial.println("#RIT field is missing");
 			return;
 		}
 

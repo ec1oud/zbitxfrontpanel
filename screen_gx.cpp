@@ -59,12 +59,10 @@ void screen_init(){
   tft.setRotation(3);
   tft.setSwapBytes(true);
 
-	Serial.printf("tft dma is %d\n", tft.DMA_Enabled);
-
   ///calibrate the screen or retreive the calibration from EEPROM
   uint16_t x, y;
   if (screen_read(&x, &y)){
-    Serial.println("Calibrating the screen");
+    Serial.println("#Calibrating the screen");
      while(screen_read(&x, &y))
       delay(100);
     delay(200);

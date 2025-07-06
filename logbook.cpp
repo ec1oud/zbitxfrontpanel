@@ -13,7 +13,6 @@ void logbook_init(){
 	log_top_index = 0;
 	log_selection = 0;
 	memset(logbook, 0, sizeof(logbook));
-	//Serial.println("Initializing the logbook");
 }
 
 void logbook_edit(struct logbook_entry *e){
@@ -52,7 +51,6 @@ void logbook_update(const char *update_str){
 		rst_recv[10], exchange_sent[10], exchange_recv[10], contact_callsign[10],
 		buff[200], *record;
 
-  //Serial.printf("log update: %s", update_str);
 	strcpy(buff, update_str);
 	record = buff;
 	//read the QSO id  
@@ -125,11 +123,9 @@ void logbook_update(const char *update_str){
 	else
 		exchange_recv[0] = 0;
 
-	//Serial.printf("parsed: id:%d / date:%s / time:%s/ freq:%d/ mode: %s/ call:%s/ sent:%s/ recv:%s/ %s\n", qso_id, date_utc, time_utc, frequency, mode, contact_callsign, rst_sent, rst_recv);
 
 	logbook_entry *e = logbook_get(qso_id);
 	if (!e){
-    //Serial.printf("Didnt find a matching entry for %d\n", qso_id);
 		//find an empty entry
 		for (int i = 0; i < MAX_LOGBOOK; i++)
 			if (logbook[i].qso_id == 0){
@@ -139,7 +135,6 @@ void logbook_update(const char *update_str){
 	}
 	//if we don't have enough space for the rest ...
 	if (!e){
-    //Serial.println("clearing the logbook");
     //the table is too full, we clear it all out.
 		memset(logbook, 0, sizeof(logbook));
 		e = logbook;
@@ -170,7 +165,6 @@ void logbook_draw(struct field *f){
 	if (log_selection >= log_top_index + nlines)
 		log_top_index = log_selection - nlines + 1; 
 
-	//Serial.printf("logbook start at %d\n", log_top_index);
 	for (int line = 0; line < nlines; line++){
 		struct logbook_entry *e = logbook + line + log_top_index;
 		int x = f->x;
@@ -221,7 +215,6 @@ void logbook_input(int input){
 			log_selection++;
 		}
 		if (input == ZBITX_KEY_ENTER){
-			//Serial.print("logbook edit");
 			logbook_edit(logbook+log_selection);
 		}
 }

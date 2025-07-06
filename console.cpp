@@ -45,7 +45,6 @@ void console_update(struct field *f, const char *style, const char *text){
 			t->buff[0] = 0;
 			current_column = 0;
 			redraw_full = 1;
-//			Serial.printf("current line %d\n", current_line);
 		}
 		int end = strlen(t->buff);
 		t->buff[current_column++] = *text;

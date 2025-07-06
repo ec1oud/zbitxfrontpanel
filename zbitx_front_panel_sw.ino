@@ -120,7 +120,6 @@ void set_bandwidth_strip(){
 	int pitch = (atoi(f_pitch->value) * 240)/span;
 	int tx_pitch = (atoi(f_tx_pitch->value) * 240)/span;
 
-	//Serial.printf("PITCH %d pitch %d\n", atoi(f_pitch->value), pitch);
 /*	if (!strcmp(f_mode->value, "CW"))
 		
 	else if(!strcmp(f_mode->value, "CWR"))
@@ -148,8 +147,6 @@ void command_tokenize(char c){
     cmd_in_field = true;
   }
   else if (c == COMMAND_END){
-		if (!strcmp(cmd_label, "VFO"))
-			Serial.printf("<<%s:%s>>\n", cmd_label, cmd_value);
 		if (strlen(cmd_label)){
 			struct field *f = field_get(cmd_label);
 			if (!f)  // some are not really fields but just updates, like QSO
@@ -162,7 +159,6 @@ void command_tokenize(char c){
     }
     cmd_in_label = false;
     cmd_in_field = false;
-		//Serial.println(">>");
   }
   else if (!cmd_in_field) // only:0 handle characters between { and }
     return;
@@ -190,7 +186,7 @@ void wire_text(char *text){
 
   int l = strlen(text);
   if (l > 255){
-    Serial.printf("Wire sending[%s] is too long\n", text);
+    Serial.printf("#Wire sending[%s] is too long\n", text);
     return;
   }
 
@@ -210,7 +206,6 @@ void on_request(){
 	if (message_buffer[0] != 0){
     strcpy(buff_i2c_req, message_buffer);
 		wire_text(buff_i2c_req);
-		Serial.println(buff_i2c_req);
 		message_buffer[0] = 0;
 		return;
 	}
@@ -236,7 +231,6 @@ void on_request(){
 
 	char buff[50];
 	sprintf(buff, "vbatt %d\npower %d\nvswr %d\n", vbatt, vfwd, vswr);
-	//Serial.printf(buff);
   wire_text(buff);
 }
 
@@ -280,19 +274,6 @@ void measure_voltages(){
 	vswr = (10*(vfwd + vref))/(vfwd-vref);
 
 	// update only once in a while
-/*	
-  sprintf(buff, "%d", vbatt);
-  field_set("VBATT", buff, true);
-
-  sprintf(buff, "%d", vfwd);
-  field_set("POWER", buff, true);
-
-  sprintf(buff, "%d", vswr);
-  field_set("REF", buff, true);
-	
-  struct field *x = field_get("POWER");
-	*/
-  //Serial.printf("%d %d\n", vfwd, vswr);
 	next_update = now + 50;
 }
 
@@ -366,7 +347,6 @@ void setup() {
 	/* while(!Serial)
 		delay(100); */
   q_init(&q_incoming);
-  Serial.println("Initializing the screen");  
   screen_init();
   field_init();
   field_clear_all();
@@ -409,7 +389,6 @@ void simulate_waterfall(){
 	if (f){
 		f->redraw = true;	
 		waterfall_draw(f);
-		Serial.println("waterfall drawn");
 	}
 }
 

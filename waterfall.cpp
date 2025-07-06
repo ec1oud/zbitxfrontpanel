@@ -16,7 +16,6 @@ void waterfall_bandwidth(int start, int stop, int center, int red_line){
 
 	center_line = center;	
 	tx_pitch = red_line;
-	//Serial.printf("bw: %d %d %d\n", bandwidth_start, bandwidth_stop, center_line);
 }
 
 void waterfall_init(){  

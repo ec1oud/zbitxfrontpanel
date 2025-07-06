@@ -110,23 +110,18 @@ void ft8_draw(field *f){
 	if (last_ft8_cursor_movement + 30000 < millis())
 		ft8_cursor = -1;
 
-	//Serial.printf("top: %d, cursor:%d, next %d\n", ft8_top, ft8_cursor, ft8_next);
 	//display all the latest fields
 	if (ft8_cursor == -1){
 		//Adjust the top to show last messages
 		ft8_top = ft8_new_index(ft8_next, -count);
-	//	Serial.printf("Adjusting unselected ft8_top to %d\n", ft8_top);
 	}
 	else {
 		if (ft8_cursor >= 0 && ft8_list[ft8_cursor].id < ft8_list[ft8_top].id && ft8_list[ft8_cursor].id > 0){
 			ft8_top = ft8_cursor;
-		//	Serial.print("BACK ");
 		}
 		else if (ft8_cursor >= 0 && ft8_list[ft8_cursor].id > ft8_list[ft8_new_index(ft8_top, count - 1)].id){
 			ft8_top = ft8_new_index(ft8_cursor, -count + 1);
-			Serial.print("FWD ");
 		}
-//		Serial.printf("Adjusted cursor to show with ft8_top at %d\n", ft8_top);
 	}
 
 	screen_fill_rect(f->x, f->y, f->w, f->h, TFT_BLACK);
@@ -172,11 +167,9 @@ void ft8_draw(field *f){
       	}
       	screen_draw_text(p+1, -1, x, f->y + (screen_text_height(2) * i), color, 2);
       	x += screen_text_width(p+1,2);
-      	//Serial.print("|");Serial.print(p);
 				if(index == ft8_cursor && f == f_selected)
       		screen_draw_rect(f->x+2, f->y + (screen_text_height(2) * i), f->w - 4, 16, TFT_WHITE);
     	}
-    	//Serial.println("done");
     }
     
     index++;
@@ -192,7 +185,6 @@ void ft8_input(int input){
 	else if (input == ZBITX_KEY_UP)
 		ft8_move_cursor(-1);
 	else if (input == ZBITX_KEY_ENTER){
-		Serial.println("Ft selecting");
 		ft8_select();
 	}
 }
