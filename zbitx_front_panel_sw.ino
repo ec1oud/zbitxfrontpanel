@@ -220,7 +220,6 @@ void on_request(){
     if (f->update_to_radio && f->type == FIELD_BUTTON){
 			f->update_to_radio = false;
       sprintf(buff_i2c_req, "%s %s", f->label, f->value);
-		Serial.print("btn ");Serial.println(buff_i2c_req);
 			wire_text(buff_i2c_req);
       return;
     }
@@ -231,8 +230,6 @@ void on_request(){
 			f->update_to_radio = false;
       sprintf(buff_i2c_req, "%s %s", f->label, f->value);
 			wire_text(buff_i2c_req);
-			Serial.print("others ");
-		Serial.println(buff_i2c_req);
       return;
     }
 	}
@@ -395,7 +392,7 @@ void setup() {
 	attachInterrupt(ENC_A, on_enc, CHANGE);
 	attachInterrupt(ENC_B, on_enc, CHANGE);
 
-	field_set("9", "zBitx firmware v1.07b\nWaiting for the zBitx to start...\n", false);
+	field_set("9", "zBitx firmware v1.07c\nWaiting for the zBitx to start...\n", false);
 
 	if (digitalRead(ENC_S) == LOW)
 		reset_usb_boot(0,0); //invokes reset into bootloader mode

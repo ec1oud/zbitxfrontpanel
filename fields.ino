@@ -157,8 +157,6 @@ void field_set(const char *label, const char *value, bool update_to_radio){
   if (!f)
     return;
 
-	if (!strcmp(f->label, "VFO"))
-		Serial.printf("vfo update_to_radio %d on %d\n", update_to_radio, __LINE__);
   if (update_to_radio)
 		field_post_to_radio(f);
 
@@ -247,8 +245,6 @@ struct field *field_select(const char *label){
 			strcpy(f->value, "OFF");
 		else
 			strcpy(f->value, "ON");
-		if (!strcmp(f->label, "VFO"))
-			Serial.printf("vfo update_to_radio %d\n", __LINE__);
 		f->update_to_radio = true;
 	}
 
@@ -403,22 +399,17 @@ void freq_draw(){
   struct field *vfo_a = field_get("VFOA");
   struct field *vfo_b = field_get("VFOB");
   struct field *rit_delta = field_get("RIT_DELTA");
- 
-
-	if (!vfo_a || !vfo_b){
-		Serial.println("vfo not showing");
-	}
 
   char buff[20];
   char temp_str[20];
 
   //update the vfos
-  /*if (vfo->value[0] == 'A')
+  if (vfo->value[0] == 'A')
       strcpy(vfo_a->value, f->value);
   else
       strcpy(vfo_b->value, f->value);
-	*/
-		if (!strcmp(split->value, "ON")){
+
+	if (!strcmp(split->value, "ON")){
     if (!in_tx()){
       strcpy(temp_str, vfo_a->value);
       sprintf(buff, "R:%s", freq_with_separators(temp_str));
@@ -646,7 +637,6 @@ void field_input(uint8_t input){
 	// handle some of the buttons locally rather than propage them 
 	// to the radio
 	if (f_selected->type == FIELD_FT8){
-		Serial.println("got ft8 input");
 		ft8_input(input);
   	f_selected->redraw = true; 
 		return;
@@ -654,7 +644,6 @@ void field_input(uint8_t input){
   else if(f_selected->type == FIELD_SELECTION){
     char *p, *last, *next, b[100], *first;
 
-		Serial.printf("changing %s\n", f_selected->label);
     strcpy(b, f_selected->selection);
     p = strtok(b, "/");
     first = p;
@@ -685,7 +674,6 @@ void field_input(uint8_t input){
       }
       //REMOVE THIS IN PRODUCTION
       if (!strcmp(f_selected->label, "MODE")){
-				Serial.printf("Setting mode locally tp %s\n", f_selected->value);
         field_set_panel(f_selected->value);
 			}
     }
@@ -747,7 +735,6 @@ void field_input(uint8_t input){
 		if (!strcmp(f_rit->value, "ON")){
 			struct field *f_rit_delta = field_get("RIT_DELTA");
 			int rit_delta = atoi(f_rit_delta->value);
-			Serial.printf("rit_delta: %d ", rit_delta);
 			if (-25000 < rit_delta - step && rit_delta + step < 25000){
 				if (input == ZBITX_KEY_UP)
 					rit_delta += step;
@@ -759,7 +746,6 @@ void field_input(uint8_t input){
 
 			field_post_to_radio(f_rit_delta);
 			sprintf(f_rit_delta->value, "%d", rit_delta);
-			Serial.printf("> %d\n", rit_delta);
 		}
 		else { //normal case
 			v = (v/step)*step;
