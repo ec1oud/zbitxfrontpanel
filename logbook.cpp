@@ -179,8 +179,9 @@ void logbook_draw(struct field *f){
 		screen_draw_text(e->date_utc, -1, x, y, TFT_LIGHTGREY, 2);
 		x += 88;
 
-		int time_utc = atoi(e->time_utc);
-		sprintf(buff, "%02d:%02d", time_utc / 60, time_utc % 60);
+		unsigned int time_utc = atoi(e->time_utc);
+		sprintf(buff, "%02d:%02d", time_utc / 100, time_utc % 100);
+		Serial.printf("%u\n", time_utc);
 		screen_draw_text(buff, -1, x, y, TFT_CYAN, 2);
 		x += 45;
 
