@@ -106,7 +106,7 @@ void waterfall_update(struct field *f, uint8_t *bins){
 		waterfall_line(f->w/2 + i, 0, 48, TFT_DARKGREY);
 	waterfall_line(f->w/2,0,48, TFT_WHITE);
 	waterfall_line(f->w/2 + center_line,0,48, TFT_GREEN);
-	if (!strcmp(field_get("MODE")->value, "FT8"))
+	if (!strncmp(field_get("MODE")->value, "FT", 2))
 		waterfall_line(f->w/2 + tx_pitch,0,48, TFT_RED);
 
 

@@ -116,7 +116,7 @@ void field_set_panel(const char *mode){
  
   field_clear_all();
 	keyboard_hide(); //fwiw
-  if (!strcmp(mode, "FT8")){
+  if (!strncmp(mode, "FT", 2)){
     strcpy(list,"ESC/F1/F2/F3/F4/F5/TX_PITCH/AUTO/TX1ST/FT8_REPEAT/FT8_LIST/WF");
 	}
   else if (!strcmp(mode, "CW") || !strcmp(mode, "CWR")){
